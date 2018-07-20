@@ -4,7 +4,7 @@ func runPrint(input: String) {
   exprs.forEach { print(eval(expr: $0, env: stdLib)) }
 }
 [
-"(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2)) ",
+"(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))",
 "(+ 1 2)",
 "(+ a 3)",
 "(- 3 5)",

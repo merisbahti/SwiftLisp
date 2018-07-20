@@ -41,22 +41,26 @@ let stdLib: Env = [
       case _:
         return Result.error("No number in + operand")
       }
-    })
+                   })
   })
-})/*,
-"def": Expr.fun({ (exprs: [Expr]) in
-  let symbol = exprs.first
+}),
+"def": Expr.fun({ (exprs: [Expr], env: Env) in
+  let head = exprs.first
   let expr = exprs.dropFirst().first
-  switch symbol! {
-  case Expr.variable:
-    map(eval(expr: expr), {
-      return .value()
-    })
-  case _:
-    return .error("First argument to def must be symbol, found: \(symbol)")
+  if let symbol = head {
+    switch symbol {
+    case Expr.variable(let variableName):
+      return map(res: eval(expr: expr!, env: env), fun: { newExpr, newEnv in
+        return .value(
+          newExpr,
+          env.merging([variableName: newExpr]) { newEnv, _ in newEnv })
+      })
+    case _:
+      return .error("First argument to def must be symbol, found: \(symbol)")
+    }
   }
-})
-*/
+  return .error("No symbol as first argument to def.")
+                })
 ]
 func eval(expr: Expr, env: Env) -> Result {
   switch expr {
@@ -84,6 +88,6 @@ func eval(expr: Expr, env: Env) -> Result {
       return .error("Variable not found: \(val)")
     }
   case .fun:
-    return .error("Cannot eval function.")
+    return .error("Cannot eval function. Maybe return self here?")
   }
 }
