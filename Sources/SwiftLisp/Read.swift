@@ -1,8 +1,3 @@
-enum Expr {
-  case number(Int)
-  case list([Expr])
-  case variable(String)
-}
 extension Expr: CustomStringConvertible {
   var description: String {
     switch self {
@@ -11,7 +6,9 @@ extension Expr: CustomStringConvertible {
     case Expr.variable(let string):
       return string
     case Expr.list(let exprs):
-      return "(\(exprs.reduce("", { "\($0) \($1)" })))"
+      return "(\(exprs.map({$0.description}).joined(separator: " ")))"
+    case Expr.fun(_):
+      return "function"
     }
   }
 }
