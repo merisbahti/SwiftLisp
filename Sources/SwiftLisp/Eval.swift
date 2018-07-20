@@ -8,14 +8,14 @@ enum Expr {
   case variable(String)
   case fun(([Expr], Env) -> Result)
 }
-func operate(res1: Result, res2: Result, opfun: (Expr, Expr, Env) -> Result) -> Result {
+func operate(res1: Result, res2: Result, opfun: (Expr, Expr) -> Result) -> Result {
   return map(
     res: res1,
-    fun: { expr1, env1 in
+    fun: { expr1, _ in
       map(
         res: res2,
-        fun: { expr2, env2 in
-          return opfun(expr1, expr2, env1.merging(env2) { _, newEnv in newEnv })
+        fun: { expr2, _ in
+          return opfun(expr1, expr2)
         }
         )
     })
@@ -34,10 +34,10 @@ typealias Env = [String: Expr]
 let stdLib: Env = [
 "+": Expr.fun({ (exprs: [Expr], env: Env) in
   return exprs.reduce(Result.value(Expr.number(0), env), { acc, expr in
-    return operate(res1: acc, res2: eval(expr: expr, env: env), opfun: { expr1, expr2, newEnv in
+    return operate(res1: acc, res2: eval(expr: expr, env: env), opfun: { expr1, expr2 in
       switch (expr1, expr2) {
       case (Expr.number(let num1), Expr.number(let num2)):
-        return Result.value(Expr.number(num1 + num2), newEnv)
+        return Result.value(Expr.number(num1 + num2), env)
       case _:
         return Result.error("No number in + operand")
       }
@@ -82,12 +82,23 @@ func eval(expr: Expr, env: Env) -> Result {
   case .number(let int):
     return .value(.number(int), env)
   case .variable(let val):
-    if let expr = stdLib[val] {
+    if let expr = env[val] {
       return .value(expr, env)
     } else {
-      return .error("Variable not found: \(val)")
+      return .error("Variable not found: \(val), env: \(env)")
     }
   case .fun:
     return .error("Cannot eval function. Maybe return self here?")
+  }
+}
+func eval(exprs: [Expr]) -> Result {
+  if let head = exprs.first {
+    return exprs.reduce(
+      eval(expr: head, env: stdLib), { res, expr in
+        return map(res: res, fun: { _, newEnv in return eval(expr: expr, env: newEnv) })
+      }
+    )
+  } else {
+    return .error("Empty expression?")
   }
 }
