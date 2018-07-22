@@ -9,6 +9,8 @@ extension Expr: CustomStringConvertible {
       return "(\(exprs.map({$0.description}).joined(separator: " ")))"
     case Expr.fun(_):
       return "function"
+    case Expr.null:
+      return "null"
     }
   }
 }
