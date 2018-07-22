@@ -103,7 +103,6 @@ let stdLib: Env = [
   return map(getSymbolsFromListExpr(head!), { symbols in
     switch body! {
     case Expr.list(let bodyList):
-      print("created lambda, with: \(bodyList) with symbols: \(symbols)")
       return Result.value((Expr.fun({ (fnArgs, fnEnv) in
         if fnArgs.capacity != symbols.capacity {
           return .error("Wrong nr of args to fn, \(fnArgs) \(symbols)")
