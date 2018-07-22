@@ -1,16 +1,32 @@
 let stdLib: Env = [
 "+": Expr.fun({ (exprs: [Expr], env: Env) in
-  return exprs.reduce(EvalResult.value((Expr.number(0), env)), { acc, expr in
-    return operate(res1: acc, res2: eval(expr, env), opfun: { expr1, expr2 in
-      switch (expr1, expr2) {
-      case (Expr.number(let num1), Expr.number(let num2)):
-        return EvalResult.value((Expr.number(num1 + num2), env))
-      case _:
-        return EvalResult.error("No number in + operand")
-      }
-                   })
-  })
-}),
+  unapply(exprs).flatMap { head, tail in
+    return tail.reduce(eval(head, env)) { accRes, expr in
+      return operate(res1: accRes, res2: eval(expr, env), opfun: { expr1, expr2 in
+        switch (expr1, expr2) {
+        case (Expr.number(let num1), Expr.number(let num2)):
+          return EvalResult.value((Expr.number(num1 + num2), env))
+        case _:
+          return EvalResult.error("No number in + operand")
+        }
+                     })
+    }
+  }
+              }),
+"-": Expr.fun({ (exprs: [Expr], env: Env) in
+  unapply(exprs).flatMap { head, tail in
+    return tail.reduce(eval(head, env)) { accRes, expr in
+      return operate(res1: accRes, res2: eval(expr, env), opfun: { expr1, expr2 in
+        switch (expr1, expr2) {
+        case (Expr.number(let num1), Expr.number(let num2)):
+          return EvalResult.value((Expr.number(num1 - num2), env))
+        case _:
+          return EvalResult.error("No number in - operand")
+        }
+                     })
+    }
+  }
+              }),
 "def": Expr.fun({ (exprs: [Expr], env: Env) in
   let head = exprs.first
   let expr = exprs.dropFirst().first
