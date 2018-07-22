@@ -17,13 +17,13 @@ let stdLib: Env = [
   if let symbol = head {
     switch symbol {
     case Expr.variable(let variableName):
-      return map(eval(expr!, env), { newExpr, newEnv in
+      return eval(expr!, env).flatMap { newExpr, newEnv in
         return .value(
           (
-          Expr.null,
+            Expr.null,
           env.merging([variableName: newExpr]) { newEnv, _ in newEnv })
           )
-      })
+      }
     case _:
       return .error("First argument to def must be symbol, found: \(symbol)")
     }
@@ -39,7 +39,7 @@ let stdLib: Env = [
   if body == nil {
     return .error("Second arg to fn undefined, should be list.")
   }
-  return map(getSymbolsFromListExpr(head!), { symbols in
+  return getSymbolsFromListExpr(head!).flatMap { symbols in
     switch body! {
     case Expr.list(let bodyList):
       return Result.value((Expr.fun({ (fnArgs, fnEnv) in
@@ -56,13 +56,13 @@ let stdLib: Env = [
           uniquingKeysWith: { argsEnv, _ in argsEnv}
         )
         let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
-        return map(bodyApplyResult, { result in
-                     Result.value((result.0, fnEnv))
-                   })
+        return bodyApplyResult.flatMap { result in
+          Result.value((result.0, fnEnv))
+        }
       }), env))
     case let other:
       return .error("Second argument to fn should be a list, got: \(other)")
     }
-             })
+  }
 })
 ]

@@ -12,8 +12,7 @@ let getSymbolsFromListExpr: (Expr) -> Result<[String]> = { exprs in
   switch exprs {
   case Expr.list(let list):
     return list.reduce(Result<[String]>.value([])) { acc, expr in
-      return map(
-        acc, { resultAcc in
+      return acc.flatMap { resultAcc in
           switch expr {
           case Expr.variable(let str):
             return .value(resultAcc + [str])
@@ -21,7 +20,6 @@ let getSymbolsFromListExpr: (Expr) -> Result<[String]> = { exprs in
             return Result<[String]>.error("All members in expr must be symbol.")
           }
         }
-      )
     }
   case let other:
     return Result<[String]>.error("Expected list, got: \(other)")
@@ -42,7 +40,7 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   case .list(let tokenList):
     let tail = Array(tokenList.dropFirst())
     if let head = tokenList.first {
-      let mapFunc: (Expr, Env) -> EvalResult = { expr, env in
+      return eval(head, env).flatMap { expr, env in
         switch expr {
         case .fun(let fun):
           return fun(tail, env)
@@ -50,7 +48,6 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
           return .error("Head of list is not a function, \(head) in list \(expr) type: \(other)")
         }
       }
-      return map(eval(head, env), mapFunc)
     } else {
       return .error("Cannot evaluate empty list")
     }
@@ -69,10 +66,10 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   }
 }
 func eval(_ exprs: [Expr]) -> EvalResult {
-  return map(unapply(exprs)) { (head, tail) in
+  return unapply(exprs).flatMap { (head, tail) in
     return tail.reduce(
       eval(head, stdLib), { res, expr in
-        return map(res, { _, newEnv in return eval(expr, newEnv) })
+        return res.flatMap { _, newEnv in return eval(expr, newEnv) }
       })
   }
 }
