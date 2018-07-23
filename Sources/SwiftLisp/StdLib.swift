@@ -33,6 +33,46 @@ let stdLib: Env = [
     }
   }
               }),
+"head": Expr.fun({ (exprs: [Expr], env: Env) in
+  if let firstArg = exprs.first {
+    switch firstArg {
+    case .list(let list):
+      if let head = list.first {
+        return .value((head, env))
+      } else {
+        return .error("Cannot apply head to empty list")
+      }
+    default:
+      return .error("Can only apply head to list, got: \(firstArg)")
+    }
+  } else {
+    return .error("head takes 1 argument, a list.")
+  }
+                 }),
+"tail": Expr.fun({ (exprs: [Expr], env: Env) in
+  if let firstArg = exprs.first {
+    switch firstArg {
+    case .list(let list):
+      return .value((Expr.list(Array(list.dropFirst())), env))
+    default:
+      return .error("Can only apply head to list, got: \(firstArg)")
+    }
+  } else {
+    return .error("tail takes 1 argument, a list.")
+  }
+                 }),
+"cons": Expr.fun({ (exprs: [Expr], env: Env) in
+  if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
+    switch secondArg {
+    case .list(let list):
+      return .value((Expr.list([firstArg] + list), env))
+    default:
+      return .error("Second arg to cons must be list, got \(firstArg)")
+    }
+  } else {
+    return .error("takes 2 arguments, an element and a list.")
+  }
+                 }),
 "def": Expr.fun({ (exprs: [Expr], env: Env) in
   let head = exprs.first
   let expr = exprs.dropFirst().first

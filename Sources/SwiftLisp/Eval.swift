@@ -10,6 +10,8 @@ extension Expr: Equatable {
     switch (lhs, rhs) {
     case (.number(let nr1), .number(let nr2)):
       return nr1 == nr2
+    case (.list(let list1), .list(let list2)):
+      return list1 == list2
     default:
       return false
     }

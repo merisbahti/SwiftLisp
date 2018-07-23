@@ -8,7 +8,10 @@ let testPrograms = [
   "(def f (fn (a b) (+ a a b))) (f 2 5)",
   "((fn (a b) (+ a b)) 2 5)",
   "(def negate (fn (a) (- a a a))) (negate 5)",
-  "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))"
+  "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))",
+  "(head (1 2 3))",
+  "(tail (1 2 3))",
+  "(cons 1 (2 3))"
 ]
 let results = [
   Result.value(Expr.number(186)),
@@ -20,7 +23,15 @@ let results = [
   Result.value(Expr.number(9)),
   Result.value(Expr.number(7)),
   Result.value(Expr.number(-5)),
-  Result.value(Expr.number(-8))
+  Result.value(Expr.number(-8)),
+  Result.value(Expr.number(1)),
+  Result.value(Expr.list([Expr.number(2), Expr.number(3)])),
+  Result.value(Expr.list([
+    Expr.number(1),
+    Expr.number(2),
+    Expr.number(3)
+  ])
+  )
 ]
 
 func green(_ str: String) -> String {
