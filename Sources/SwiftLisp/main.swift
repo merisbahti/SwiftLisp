@@ -30,25 +30,36 @@ let testPrograms = [
   (def f (
     fn (a) (
       cond
-        ((eq a 0) 1337)
+        ((eq a 0) (list (1 3 3 7)))
         (true (f (- a 1)))
     )
   ))
-  (f 500)
+  (f 3)
   """,
   "(def f (fn (a) (cond ((eq a 5) 1337) (true -1)))) (f 10)",
   """
-  (def map (
-    fn (f list) (
-      cond (
-        (eq list null) (())
-        (true) (cons
-          (f (head list))
-          (map f (tail list))
-        )
-      )
+  (def apply (
+    fn (f xs) (f xs)
   ))
-  (map (fn (a) (+ a 1)) (1 2 3))
+  (apply (fn (a) (+ a 1)) 1)
+  """, """
+  (def fib (
+    fn (x) (cond
+      ((eq 1 x) 1)
+      ((eq 0 x) 1)
+      (true (+ (fib (- x 1)) (fib (- x 2))))
+  )))
+  (fib 10)
+  """, """
+  (def map (
+    fn (f xs) (cond
+      ((eq (head xs) null) (list ()))
+      (true (cons
+        (f (head xs))
+        (map f (tail xs))
+      ))
+  )))
+  (map (fn (x) (+ x 1)) (list (1 2 3)))
   """
 ]
 let results = [
@@ -84,8 +95,19 @@ let results = [
   Result.value(Expr.bool(true)),
   Result.value(Expr.bool(false)),
   Result.value(Expr.number(1337)),
-  Result.value(Expr.number(1337)),
+  Result.value(Expr.list([
+    Expr.number(1),
+    Expr.number(3),
+    Expr.number(3),
+    Expr.number(7)
+  ])),
   Result.value(Expr.number(-1)),
+  Result.value(Expr.list([
+    Expr.number(2),
+    Expr.number(3),
+    Expr.number(4)
+  ])),
+  Result.value(Expr.number(89)),
   Result.value(Expr.list([
     Expr.number(2),
     Expr.number(3),
