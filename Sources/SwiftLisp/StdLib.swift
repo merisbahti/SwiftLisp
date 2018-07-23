@@ -1,29 +1,35 @@
 let stdLib: Env = [
 "+": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).flatMap { head, tail in
+  unapply(exprs).flatMap { headTail in
+    let head = headTail.0
+    let tail = headTail.1
     return tail.reduce(eval(head, env)) { accRes, expr in
-      return operate(res1: accRes, res2: eval(expr, env), opfun: { expr1, expr2 in
-        switch (expr1, expr2) {
-        case (Expr.number(let num1), Expr.number(let num2)):
-          return EvalResult.value((Expr.number(num1 + num2), env))
-        case _:
-          return EvalResult.error("No number in + operand")
-        }
-                     })
+      return accRes.flatMap { lhsEval in
+        return eval(expr, env).flatMap { rhsEval in
+          switch (lhsEval, rhsEval) {
+          case ((Expr.number(let nr1), _), (Expr.number(let nr2), _)):
+            return Result.value((Expr.number(nr1 + nr2), env))
+          default:
+            return EvalResult.error("No number in + operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)")
+          }
+        }}
     }
   }
               }),
 "-": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).flatMap { head, tail in
+  unapply(exprs).flatMap { headTail in
+    let head = headTail.0
+    let tail = headTail.1
     return tail.reduce(eval(head, env)) { accRes, expr in
-      return operate(res1: accRes, res2: eval(expr, env), opfun: { expr1, expr2 in
-        switch (expr1, expr2) {
-        case (Expr.number(let num1), Expr.number(let num2)):
-          return EvalResult.value((Expr.number(num1 - num2), env))
-        case _:
-          return EvalResult.error("No number in - operand")
-        }
-                     })
+      return accRes.flatMap { lhsEval in
+        return eval(expr, env).flatMap { rhsEval in
+          switch (lhsEval, rhsEval) {
+          case ((Expr.number(let nr1), _), (Expr.number(let nr2), _)):
+            return Result.value((Expr.number(nr1 - nr2), env))
+          default:
+            return EvalResult.error("No number in - operand")
+          }
+        }}
     }
   }
               }),
@@ -63,6 +69,7 @@ let stdLib: Env = [
           return .error("Wrong nr of args to fn, \(fnArgs) \(symbols)")
         }
         let emptyEnv: Env = [:]
+        // Evaluate all fnArgs
         let argsEnv: Env = zip(symbols, fnArgs).reduce(
         emptyEnv, { (acc: Env, kvs: (String, Expr)) in
           acc.merging([kvs.0: kvs.1], uniquingKeysWith: { _, kvs in kvs })

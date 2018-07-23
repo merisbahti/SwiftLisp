@@ -16,24 +16,6 @@ extension Expr: CustomStringConvertible {
 }
 
 func read(input: [String]) -> [Expr] {
-  /*
-  let head = input.first
-  let tail = Array(input.dropFirst())
-  switch head {
-  case "(":
-    return [Expr.list(read(input: tail))]
-  case ")":
-    return [] + read(input: tail)
-  case let str where str != nil:
-    if let int = Int(str!) {
-      return [Expr.number(int)] + read(input: tail)
-    } else {
-      return [Expr.variable(str!)] + read(input: tail)
-    }
-  default:
-    return []
-  }
-  */
   let result = read2(input: input)
   return result.0
 }

@@ -5,6 +5,16 @@ enum Expr {
   case fun(([Expr], Env) -> EvalResult)
   case null
 }
+extension Expr: Equatable {
+  static func == (lhs: Expr, rhs: Expr) -> Bool {
+    switch (lhs, rhs) {
+    case (.number(let nr1), .number(let nr2)):
+      return nr1 == nr2
+    default:
+      return false
+    }
+  }
+}
 typealias EvalResult = Result<(Expr, Env)>
 typealias Env = [String: Expr]
 
@@ -13,13 +23,13 @@ let getSymbolsFromListExpr: (Expr) -> Result<[String]> = { exprs in
   case Expr.list(let list):
     return list.reduce(Result<[String]>.value([])) { acc, expr in
       return acc.flatMap { resultAcc in
-          switch expr {
-          case Expr.variable(let str):
-            return .value(resultAcc + [str])
-          default:
-            return Result<[String]>.error("All members in expr must be symbol.")
-          }
+        switch expr {
+        case Expr.variable(let str):
+          return .value(resultAcc + [str])
+        default:
+          return Result<[String]>.error("All members in expr must be symbol.")
         }
+      }
     }
   case let other:
     return Result<[String]>.error("Expected list, got: \(other)")
@@ -38,38 +48,39 @@ func unapply<T>(_ list: [T]) -> Result<(T, [T])> {
 func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .list(let tokenList):
-    let tail = Array(tokenList.dropFirst())
-    if let head = tokenList.first {
-      return eval(head, env).flatMap { expr, env in
-        switch expr {
+    return unapply(tokenList)
+    .flapFlap("Cannot evaluate empty list: \(tokenList)")
+    .flatMap { (headTail: (Expr, [Expr])) in
+      let head = headTail.0
+      let tail = headTail.1
+      return eval(head, env).flatMap { headExpr, env in
+        switch headExpr {
         case .fun(let fun):
           return fun(tail, env)
-        case let other:
-          return .error("Head of list is not a function, \(head) in list \(expr) type: \(other)")
+        case _:
+          return .error("Head of list is not a function, \(head) in list \(expr)")
         }
       }
-    } else {
-      return .error("Cannot evaluate empty list")
     }
   case .number(let int):
     return .value((.number(int), env))
   case .variable(let val):
     if let expr = env[val] {
-      return .value((expr, env))
+      return eval(expr, env)
     } else {
-      return .error("Variable not found: \(val), env: \(env)")
+      return .error("Variable not found: \(val)")
     }
   case .fun:
-    return .error("Cannot eval function. Maybe return self here?")
+    return .value((expr, env))
   case .null:
     return .error("Can't eval null")
   }
 }
-func eval(_ exprs: [Expr]) -> EvalResult {
+func eval(_ exprs: [Expr]) -> Result<Expr> {
   return unapply(exprs).flatMap { (head, tail) in
     return tail.reduce(
       eval(head, stdLib), { res, expr in
         return res.flatMap { _, newEnv in return eval(expr, newEnv) }
       })
-  }
+  }.flatMap { return .value($0.0)}
 }
