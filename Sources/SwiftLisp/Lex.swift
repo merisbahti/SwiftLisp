@@ -5,7 +5,7 @@ func lex(input: String) -> [String] {
     let tokens = tuple.0
     let currentToken = tuple.1
     switch char {
-    case " ":
+    case " ", "\n":
       if currentToken != nil {
         return (tokens + [currentToken!], nil)
       }

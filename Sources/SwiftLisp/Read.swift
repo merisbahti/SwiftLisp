@@ -11,6 +11,8 @@ extension Expr: CustomStringConvertible {
       return "function"
     case Expr.null:
       return "null"
+    case Expr.bool(let bool):
+      return "\(bool)"
     }
   }
 }

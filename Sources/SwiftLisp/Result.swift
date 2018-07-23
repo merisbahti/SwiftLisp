@@ -32,11 +32,21 @@ extension Result {
   }
 }
 extension Result {
+  func orElse(_ fun: (String) -> Result<T>) -> Result<T> {
+    switch self {
+    case .error(let err):
+      return fun(err)
+    default:
+      return self
+    }
+  }
+}
+extension Result {
   func forEach(_ fun: (T) -> Void) {
     switch self {
     case .value(let val):
       fun(val)
-    case .error(_):
+    case .error:
       break
     }
   }

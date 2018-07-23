@@ -3,6 +3,7 @@ enum Expr {
   case list([Expr])
   case variable(String)
   case fun(([Expr], Env) -> EvalResult)
+  case bool(Bool)
   case null
 }
 extension Expr: Equatable {
@@ -12,6 +13,8 @@ extension Expr: Equatable {
       return nr1 == nr2
     case (.list(let list1), .list(let list2)):
       return list1 == list2
+    case (.bool(let bool1), .bool(let bool2)):
+      return bool1 == bool2
     default:
       return false
     }
@@ -66,6 +69,8 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     }
   case .number(let int):
     return .value((.number(int), env))
+  case .bool(let bool):
+    return .value((.bool(bool), env))
   case .variable(let val):
     if let expr = env[val] {
       return eval(expr, env)

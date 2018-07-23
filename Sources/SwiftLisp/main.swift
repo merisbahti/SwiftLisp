@@ -11,7 +11,31 @@ let testPrograms = [
   "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))",
   "(head (1 2 3))",
   "(tail (1 2 3))",
-  "(cons 1 (2 3))"
+  "(cons 1 (2 3))",
+  "(cond (false 2) (true 4))",
+  "(and true true true)",
+  "(and true false true)",
+  "(or true true true)",
+  "(or true false true)",
+  "(eq 2 2)",
+  "(eq 2 3)",
+  """
+  (def f (
+    fn (a) (cond ((eq a 5) 1337
+    ))))
+  (f 5)
+  """,
+  """
+  (def f (
+    fn (a) (
+      cond
+        ((eq a 0) 580)
+        (true (f (- a 1)))
+    )
+  ))
+  (f 1)
+  """,
+  "(def f (fn (a) (cond ((eq a 5) 1337) (true -1)))) (f 10)"
 ]
 let results = [
   Result.value(Expr.number(186)),
@@ -31,7 +55,17 @@ let results = [
     Expr.number(2),
     Expr.number(3)
   ])
-  )
+  ),
+  Result.value(Expr.number(4)),
+  Result.value(Expr.bool(true)),
+  Result.value(Expr.bool(false)),
+  Result.value(Expr.bool(true)),
+  Result.value(Expr.bool(true)),
+  Result.value(Expr.bool(true)),
+  Result.value(Expr.bool(false)),
+  Result.value(Expr.number(1337)),
+  Result.value(Expr.number(580)),
+  Result.value(Expr.number(-1))
 ]
 
 func green(_ str: String) -> String {
