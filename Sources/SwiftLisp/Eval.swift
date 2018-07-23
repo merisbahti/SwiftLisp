@@ -15,6 +15,8 @@ extension Expr: Equatable {
       return list1 == list2
     case (.bool(let bool1), .bool(let bool2)):
       return bool1 == bool2
+    case (.null, .null):
+      return true
     default:
       return false
     }
@@ -73,12 +75,12 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     return .value((.bool(bool), env))
   case .variable(let val):
     if let expr = env[val] {
-      return eval(expr, env)
-    } else {
+      return .value((expr, env))
+     } else {
       return .error("Variable not found: \(val)")
     }
   case .fun:
-    return .value((expr, env))
+    return .error("Cannot evaluate function.")
   case .null:
     return .error("Can't eval null")
   }

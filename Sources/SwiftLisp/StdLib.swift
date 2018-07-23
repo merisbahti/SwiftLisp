@@ -63,16 +63,17 @@ let stdLib: Env = [
 "and": boolBoolOperator({$0 && $1}, "and"),
 "or": boolBoolOperator({$0 || $1}, "or"),
 "eq": comparisonOperator({$0 == $1}, "eq"),
+"null": Expr.null,
 "head": Expr.fun({ (exprs: [Expr], env: Env) in
   if let firstArg = exprs.first {
     switch firstArg {
-    case .list(let list):
+    case Expr.list(let list):
       if let head = list.first {
         return .value((head, env))
       } else {
-        return .error("Cannot apply head to empty list")
+        return .value((.null, env))
       }
-    default:
+    case let whatever:
       return .error("Can only apply head to list, got: \(firstArg)")
     }
   } else {
@@ -180,17 +181,24 @@ let stdLib: Env = [
         }
         let emptyEnv: Env = [:]
         // Evaluate all fnArgs
-        let argsEnv: Env = zip(symbols, fnArgs).reduce(
-        emptyEnv, { (acc: Env, kvs: (String, Expr)) in
-          acc.merging([kvs.0: kvs.1], uniquingKeysWith: { _, kvs in kvs })
+        let argsEnv: Result<Env> = zip(symbols, fnArgs).reduce(
+        Result.value(emptyEnv), { (acc: Result<Env>, kvs: (String, Expr)) in
+          let kvsExprEvalResult = eval(kvs.1, fnEnv)
+          return kvsExprEvalResult.flatMap { kvsExprEvalResult in
+            return acc.flatMap { accEvalResult in
+              return .value(accEvalResult.merging([kvs.0: kvsExprEvalResult.0], uniquingKeysWith: { _, kvs in kvs }))
+            }
+          }
         })
-        let applicationEnv: Env = argsEnv.merging(
-          fnEnv,
-          uniquingKeysWith: { argsEnv, fnEnv in argsEnv}
-        )
-        let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
-        return bodyApplyResult.flatMap { result in
-          Result.value((result.0, fnEnv))
+        return argsEnv.flatMap { argsEnv in
+          let applicationEnv: Env = argsEnv.merging(
+            fnEnv,
+            uniquingKeysWith: { argsEnv, _ in argsEnv}
+          )
+          let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
+          return bodyApplyResult.flatMap { result in
+            Result.value((result.0, fnEnv))
+          }
         }
       }), env))
     case let other:
