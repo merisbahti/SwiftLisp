@@ -69,19 +69,19 @@ final class SwiftLispTests: XCTestCase {
     ("""
      (def fib (
      fn (x) (cond
+     ((eq 0 x) 0)
      ((eq 1 x) 1)
-     ((eq 0 x) 1)
      (true (+ (fib (- x 1)) (fib (- x 2))))
      )))
-     (fib 10)
+     (fib 11)
      """, Result.value(Expr.number(89))),
     ("""
      (def map (
-     fn (f xs) (cond
-     ((eq (head xs) null) (list ()))
-     (true (cons
-     (f (head xs))
-     (map f (tail xs))
+      fn (f xs) (cond
+        ((eq (head xs) null) (list ()))
+        (true (cons
+          (f (head xs))
+          (map f (tail xs))
      ))
      )))
      (map (fn (x) (+ x 1)) (list (1 2 3)))
