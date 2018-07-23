@@ -47,8 +47,6 @@ func comparisonOperator(_ opr: @escaping (Expr, Expr) -> Bool, _ symbol: String)
             switch (lhsEval, rhsEval) {
             case ((let expr1, _), (let expr2, _)):
               return Result.value((Expr.bool(opr(expr1, expr2)), env))
-            default:
-              return EvalResult.error("No bool in \(symbol) operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)")
             }
           }}
       }
@@ -66,15 +64,18 @@ let stdLib: Env = [
 "null": Expr.null,
 "head": Expr.fun({ (exprs: [Expr], env: Env) in
   if let firstArg = exprs.first {
-    switch firstArg {
-    case Expr.list(let list):
-      if let head = list.first {
-        return .value((head, env))
-      } else {
-        return .value((.null, env))
+    return eval(firstArg, env).flatMap { firstArgResult in
+      let firstArgEvaled = firstArgResult.0
+      switch firstArgEvaled {
+      case Expr.list(let list):
+        if let head = list.first {
+          return .value((head, env))
+        } else {
+          return .value((.null, env))
+        }
+      case let whatever:
+        return .error("Can only apply head to list, got: \(firstArg)")
       }
-    case let whatever:
-      return .error("Can only apply head to list, got: \(firstArg)")
     }
   } else {
     return .error("head takes 1 argument, a list.")
@@ -82,11 +83,13 @@ let stdLib: Env = [
                  }),
 "tail": Expr.fun({ (exprs: [Expr], env: Env) in
   if let firstArg = exprs.first {
-    switch firstArg {
-    case .list(let list):
-      return .value((Expr.list(Array(list.dropFirst())), env))
-    default:
-      return .error("Can only apply head to list, got: \(firstArg)")
+    return eval(firstArg, env).flatMap { firstArgRes in
+      switch firstArgRes.0 {
+      case .list(let list):
+        return .value((Expr.list(Array(list.dropFirst())), env))
+      default:
+        return .error("Can only apply tail to list, got: \(firstArg)")
+      }
     }
   } else {
     return .error("tail takes 1 argument, a list.")
@@ -134,11 +137,15 @@ let stdLib: Env = [
 }),
 "cons": Expr.fun({ (exprs: [Expr], env: Env) in
   if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
-    switch secondArg {
-    case .list(let list):
-      return .value((Expr.list([firstArg] + list), env))
-    default:
-      return .error("Second arg to cons must be list, got \(firstArg)")
+    return eval(firstArg, env).flatMap { firstRes in
+      return eval(secondArg, env).flatMap { secondRes in
+        switch secondRes.0 {
+        case .list(let list):
+          return .value((Expr.list([firstRes.0] + list), env))
+        default:
+          return .error("Second arg to cons must be list, got \(firstArg)")
+        }
+      }
     }
   } else {
     return .error("takes 2 arguments, an element and a list.")
@@ -163,6 +170,20 @@ let stdLib: Env = [
   }
   return .error("No symbol as first argument to def.")
                 }),
+"list": Expr.fun({ (exprs: [Expr], env: Env) in
+  return unapply(exprs).orElse { _ in
+    return .error("Cannot unapply on empty list in fn: list")
+  }.flatMap { headTail in
+    return .value(headTail.0)
+  }.flatMap { head in
+    switch head {
+    case Expr.list:
+      return .value((head, env))
+    default:
+      return .error("First arg to fn(list) must be a list.")
+    }
+  }
+}),
 "fn": Expr.fun({ (exprs: [Expr], env: Env) in
   let head = exprs.first
   let body = exprs.dropFirst().first
