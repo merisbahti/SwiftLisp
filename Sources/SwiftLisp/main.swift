@@ -12,6 +12,7 @@ let testPrograms = [
   "(head (1 2 3))",
   "(tail (1 2 3))",
   "(cons 1 (2 3))",
+  "(cons 1 (tail (1 2 3))",
   "(cond (false 2) (true 4))",
   "(and true true true)",
   "(and true false true)",
@@ -69,6 +70,12 @@ let results = [
     Expr.number(3)
   ])
   ),
+  Result.value(Expr.list([
+    Expr.number(1),
+    Expr.number(2),
+    Expr.number(3)
+  ])
+  ),
   Result.value(Expr.number(4)),
   Result.value(Expr.bool(true)),
   Result.value(Expr.bool(false)),
@@ -105,7 +112,8 @@ zip(testPrograms, results).forEach { tup in
   if expected == result {
     print("\(green("OK")): Expr \(pink(exprs.description)) gives \(pink("\(result)"))")
   } else {
-    print("\(red("ERROR")): Expr \(pink(exprs.description)) gives \(pink("\(result)"))")
+    print("\(red("ERROR")): Expr \(pink(exprs.description))")
+    print("       Result:   \(pink("\(result)"))")
     print("       Expected: \(pink("\(expected)"))")
   }
 
