@@ -16,15 +16,15 @@ final class SwiftLispTests: XCTestCase {
       "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))",
       Result.value(Expr.number(-8))
       ),
-    ("(head (list (1 2 3)))", Result.value(Expr.number(1))),
-    ("(tail (list (1 2 3)))", Result.value(Expr.list([Expr.number(2), Expr.number(3)]))),
-    ("(cons 1 (list (2 3)))", Result.value(Expr.list([
+    ("(head (quote (1 2 3)))", Result.value(Expr.number(1))),
+    ("(tail (quote (1 2 3)))", Result.value(Expr.list([Expr.number(2), Expr.number(3)]))),
+    ("(cons 1 (quote (2 3)))", Result.value(Expr.list([
       Expr.number(1),
       Expr.number(2),
       Expr.number(3)
     ])
     )),
-    ("(cons 1 (tail (list (1 2 3)))", Result.value(Expr.list([
+    ("(cons 1 (tail (quote (1 2 3)))", Result.value(Expr.list([
       Expr.number(1),
       Expr.number(2),
       Expr.number(3)
@@ -47,7 +47,7 @@ final class SwiftLispTests: XCTestCase {
      (def f (
      fn (a) (
      cond
-     ((eq a 0) (list (1 3 3 7)))
+     ((eq a 0) (quote (1 3 3 7)))
      (true (f (- a 1)))
     )
     ))
@@ -77,19 +77,26 @@ final class SwiftLispTests: XCTestCase {
      """, Result.value(Expr.number(89))),
     ("""
      (def map (
-      fn (f xs) (cond
-        ((eq (head xs) null) (list ()))
-        (true (cons
-          (f (head xs))
-          (map f (tail xs))
+     fn (f xs) (cond
+     ((eq (head xs) null) (quote ()))
+     (true (cons
+     (f (head xs))
+     (map f (tail xs))
      ))
      )))
-     (map (fn (x) (+ x 1)) (list (1 2 3)))
+     (map (fn (x) (+ x 1)) (quote (1 2 3)))
      """, Result.value(Expr.list([
        Expr.number(2),
        Expr.number(3),
        Expr.number(4)
-     ])))
+     ]))),
+     ("(quote (1 2 3))",
+      Result.value(Expr.list([
+        Expr.number(1),
+        Expr.number(2),
+        Expr.number(3)
+      ]))),
+      ("((quote (+ 2 3)))", Result.error("Hello"))
   ]
 
   func testExample() {

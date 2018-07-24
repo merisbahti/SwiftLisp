@@ -170,17 +170,14 @@ let stdLib: Env = [
   }
   return .error("No symbol as first argument to def.")
                 }),
-"list": Expr.fun({ (exprs: [Expr], env: Env) in
+"quote": Expr.fun({ (exprs: [Expr], env: Env) in
   return unapply(exprs).orElse { _ in
-    return .error("Cannot unapply on empty list in fn: list")
+    return .error("Cannot quote empty list")
   }.flatMap { headTail in
-    return .value(headTail.0)
-  }.flatMap { head in
-    switch head {
-    case Expr.list:
-      return .value((head, env))
-    default:
-      return .error("First arg to fn(list) must be a list.")
+    if headTail.1.count > 0 {
+      return .error("quote takes 1 argument only.")
+    } else {
+      return .value((headTail.0, env))
     }
   }
 }),
