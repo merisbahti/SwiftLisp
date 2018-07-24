@@ -152,23 +152,23 @@ let stdLib: Env = [
   }
                  }),
 "def": Expr.fun({ (exprs: [Expr], env: Env) in
-  let head = exprs.first
-  let expr = exprs.dropFirst().first
-  if let symbol = head {
-    switch symbol {
+  unapply(exprs).flatMap { (head, tail) in
+    switch head {
     case Expr.variable(let variableName):
-      return eval(expr!, env).flatMap { newExpr, newEnv in
-        return .value(
-          (
-            Expr.null,
-            env.merging([variableName: newExpr]) { newEnv, _ in newEnv })
-          )
+      return unapply(tail).flatMap { (head2, _)in
+        .value((variableName, head2))
       }
-    case _:
-      return .error("First argument to def must be symbol, found: \(symbol)")
+    default:
+      return .error("First arg to def must be symbol.")
+    }
+  }.flatMap { (symbol, expr) -> EvalResult in
+    eval(expr, env).flatMap { evaluatedExpr, _ in
+      .value((
+        Expr.null,
+        env.merging([symbol: evaluatedExpr]) { env, _ in env }
+        ))
     }
   }
-  return .error("No symbol as first argument to def.")
                 }),
 "quote": Expr.fun({ (exprs: [Expr], env: Env) in
   return unapply(exprs).orElse { _ in
@@ -180,7 +180,7 @@ let stdLib: Env = [
       return .value((headTail.0, env))
     }
   }
-}),
+                  }),
 "fn": Expr.fun({ (exprs: [Expr], env: Env) in
   let head = exprs.first
   let body = exprs.dropFirst().first
