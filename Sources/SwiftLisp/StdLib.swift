@@ -152,11 +152,18 @@ let stdLib: Env = [
   }
                  }),
 "def": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).flatMap { (head, tail) in
+  if exprs.count != 2 {
+    return .error("\"def\" takes 2 arguments.")
+  }
+  return unapply(exprs).flatMap { (head, tail) in
     switch head {
     case Expr.variable(let variableName):
-      return unapply(tail).flatMap { (head2, _)in
-        .value((variableName, head2))
+      if env[variableName] != nil {
+        return .error("\"\(variableName)\" is already defined in the environment.")
+      } else {
+        return unapply(tail).flatMap { (head2, _)in
+          .value((variableName, head2))
+        }
       }
     default:
       return .error("First arg to def must be symbol.")

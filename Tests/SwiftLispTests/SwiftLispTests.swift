@@ -102,7 +102,9 @@ final class SwiftLispTests: XCTestCase {
           Expr.number(2),
           Expr.number(3)
         ])
-        ))
+        )),
+      ("(def def 2)", Result.error("\"def\" is already defined in the environment.")),
+      ("(def a 1 2 3)", Result.error("\"def\" takes 2 arguments."))
   ]
 
   func testExample() {
