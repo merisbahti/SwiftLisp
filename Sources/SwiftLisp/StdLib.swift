@@ -74,7 +74,7 @@ let stdLib: Env = [
           return .value((.null, env))
         }
       case let whatever:
-        return .error("Can only apply head to list, got: \(firstArg)")
+        return .error("Can only apply head to list, got: \(firstArgEvaled)")
       }
     }
   } else {

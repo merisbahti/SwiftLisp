@@ -104,7 +104,21 @@ final class SwiftLispTests: XCTestCase {
         ])
         )),
       ("(def def 2)", Result.error("\"def\" is already defined in the environment.")),
-      ("(def a 1 2 3)", Result.error("\"def\" takes 2 arguments."))
+      ("(def a 1 2 3)", Result.error("\"def\" takes 2 arguments.")),
+      (
+        """
+        (def filter
+          (fn (pred xs)
+          (cond
+            ((eq xs (quote ())) (quote ()))
+            ((pred (head xs)) (cons (head xs) (filter pred (tail xs))))
+            (true (filter pred (tail xs)))
+          )
+          )
+        )
+        (filter (fn (x) (eq 2 x)) (quote (1 2 3 2 4 5 2)))
+        """
+       , Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)])))
   ]
 
   func testExample() {
