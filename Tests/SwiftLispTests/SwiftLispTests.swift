@@ -96,7 +96,13 @@ final class SwiftLispTests: XCTestCase {
         Expr.number(2),
         Expr.number(3)
       ]))),
-      ("((quote (+ 2 3)))", Result.error("Hello"))
+      ("(quote (1 2 3))", Result.value(
+        Expr.list([
+          Expr.number(1),
+          Expr.number(2),
+          Expr.number(3)
+        ])
+        ))
   ]
 
   func testExample() {
