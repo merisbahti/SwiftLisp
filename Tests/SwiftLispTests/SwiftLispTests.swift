@@ -1,5 +1,5 @@
 import XCTest
-@testable import SwiftLisp
+@testable import SwiftLispLib
 
 final class SwiftLispTests: XCTestCase {
   static let testProgramsAndValues = [

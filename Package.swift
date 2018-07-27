@@ -8,8 +8,8 @@ let package = Package(
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
-            name: "SwiftLisp",
-            targets: ["SwiftLisp"])
+            name: "SwiftLispLib",
+            targets: ["SwiftLispLib"])
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -17,10 +17,17 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "SwiftLisp",
-            dependencies: []),
+            name: "SwiftLispLib",
+            dependencies: [],
+            path: "Sources/SwiftLisp/SwiftLispLib"
+            ),
+        .target(
+            name: "SwiftLispRepl",
+            dependencies: [],
+            path: "Sources/SwiftLisp/SwiftLispRepl"
+            ),
         .testTarget(
             name: "SwiftLispTests",
-            dependencies: ["SwiftLisp"])
+            dependencies: ["SwiftLispLib"])
     ]
 )
