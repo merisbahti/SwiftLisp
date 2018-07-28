@@ -57,22 +57,23 @@ public let stdLib: Env = [
 "eq": comparisonOperator({$0 == $1}, "eq"),
 "null": Expr.null,
 "head": Expr.fun({ (exprs: [Expr], env: Env) in
-  if let firstArg = exprs.first {
-    return eval(firstArg, env).flatMap { firstArgResult in
-      let firstArgEvaled = firstArgResult.0
-      switch firstArgEvaled {
-      case Expr.list(let list):
-        if let head = list.first {
-          return .value((head, env))
-        } else {
-          return .value((.null, env))
-        }
-      case let whatever:
-        return .error("Can only apply head to list, got: \(firstArgEvaled)")
+  return unapply(exprs).flatMap { (head, _) in
+    return .value(head)
+  }.orElse { _ in
+    return .error("head must be applied to 1 argument.")
+  }.flatMap { firstArgExpr in
+    eval(firstArgExpr, env)
+  }.flatMap { (firstArgEvaled, _) in
+    switch firstArgEvaled {
+    case Expr.list(let list):
+      return unapply(list).flatMap { (head, _)  in
+        return .value((head, env))
+      }.orElse { _ in
+        return .value((Expr.null, env))
       }
+    case let other:
+      return .error("Can only apply head to list, got: \(other)")
     }
-  } else {
-    return .error("head takes 1 argument, a list.")
   }
                  }),
 "tail": Expr.fun({ (exprs: [Expr], env: Env) in
