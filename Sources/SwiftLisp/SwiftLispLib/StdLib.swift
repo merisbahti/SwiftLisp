@@ -57,8 +57,8 @@ public let stdLib: Env = [
 "eq": comparisonOperator({$0 == $1}, "eq"),
 "null": Expr.null,
 "head": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).flatMap { (head, _) in
-    .value(head)
+  unapply(exprs).map { (head, _) in
+    head
   }.orElse { _ in
     .error("head must be applied to 1 argument.")
   }.flatMap { firstArgExpr in
@@ -66,8 +66,8 @@ public let stdLib: Env = [
   }.flatMap { (firstArgEvaled, _) in
     switch firstArgEvaled {
     case Expr.list(let list):
-      return unapply(list).flatMap { (head, _)  in
-        return .value((head, env))
+      return unapply(list).map { (head, _)  in
+        return (head, env)
       }.orElse { _ in
         return .value((Expr.null, env))
       }
@@ -77,8 +77,8 @@ public let stdLib: Env = [
   }
                  }),
 "tail": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).flatMap { (head, _) in
-    .value(head)
+  unapply(exprs).map { (head, _) in
+    head
   }.orElse { _ in
     .error("tail must be applied to 1 argument.")
   }.flatMap { firstArgExpr in
@@ -86,8 +86,8 @@ public let stdLib: Env = [
   }.flatMap { (firstArgEvaled, _) in
     switch firstArgEvaled {
     case Expr.list(let list):
-      return unapply(list).flatMap { (_, tail)  in
-        return .value((Expr.list(tail), env))
+      return unapply(list).map { (_, tail)  in
+        return (Expr.list(tail), env)
       }.orElse { _ in
         return .value((Expr.list([]), env))
       }
