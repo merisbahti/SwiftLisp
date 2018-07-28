@@ -57,10 +57,10 @@ public let stdLib: Env = [
 "eq": comparisonOperator({$0 == $1}, "eq"),
 "null": Expr.null,
 "head": Expr.fun({ (exprs: [Expr], env: Env) in
-  return unapply(exprs).flatMap { (head, _) in
-    return .value(head)
+  unapply(exprs).flatMap { (head, _) in
+    .value(head)
   }.orElse { _ in
-    return .error("head must be applied to 1 argument.")
+    .error("head must be applied to 1 argument.")
   }.flatMap { firstArgExpr in
     eval(firstArgExpr, env)
   }.flatMap { (firstArgEvaled, _) in
@@ -77,10 +77,10 @@ public let stdLib: Env = [
   }
                  }),
 "tail": Expr.fun({ (exprs: [Expr], env: Env) in
-  return unapply(exprs).flatMap { (head, _) in
-    return .value(head)
+  unapply(exprs).flatMap { (head, _) in
+    .value(head)
   }.orElse { _ in
-    return .error("tail must be applied to 1 argument.")
+    .error("tail must be applied to 1 argument.")
   }.flatMap { firstArgExpr in
     eval(firstArgExpr, env)
   }.flatMap { (firstArgEvaled, _) in
