@@ -1,4 +1,4 @@
-enum Result<T> {
+public enum Result<T> {
   case value(T)
   case error(String)
 }
@@ -42,13 +42,14 @@ extension Result {
   }
 }
 extension Result {
-  func forEach(_ fun: (T) -> Void) {
+  func forEach(_ fun: (T) -> Void) -> Result<T> {
     switch self {
     case .value(let val):
       fun(val)
     case .error:
       break
     }
+    return self
   }
 }
 extension Result {

@@ -1,5 +1,5 @@
 extension Expr: CustomStringConvertible {
-  var description: String {
+  public var description: String {
     switch self {
     case Expr.number(let nbr):
       return String(nbr)

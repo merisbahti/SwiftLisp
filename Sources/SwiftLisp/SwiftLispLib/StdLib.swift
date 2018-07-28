@@ -1,8 +1,6 @@
 func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Expr {
   return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { headTail in
-      let head = headTail.0
-      let tail = headTail.1
+    return unapply(exprs).flatMap { (head, tail) in
       return tail.reduce(eval(head, env)) { accRes, expr in
         return accRes.flatMap { lhsEval in
           return eval(expr, env).flatMap { rhsEval in
@@ -19,9 +17,7 @@ func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Exp
 }
 func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -> Expr {
   return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { headTail in
-      let head = headTail.0
-      let tail = headTail.1
+    return unapply(exprs).flatMap { (head, tail) in
       return tail.reduce(eval(head, env)) { accRes, expr in
         return accRes.flatMap { lhsEval in
           return eval(expr, env).flatMap { rhsEval in
@@ -38,9 +34,7 @@ func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -
 }
 func comparisonOperator(_ opr: @escaping (Expr, Expr) -> Bool, _ symbol: String) -> Expr {
   return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { headTail in
-      let head = headTail.0
-      let tail = headTail.1
+    return unapply(exprs).flatMap { (head, tail) in
       return tail.reduce(eval(head, env)) { accRes, expr in
         return accRes.flatMap { lhsEval in
           return eval(expr, env).flatMap { rhsEval in
@@ -53,7 +47,7 @@ func comparisonOperator(_ opr: @escaping (Expr, Expr) -> Bool, _ symbol: String)
     }
   })
 }
-let stdLib: Env = [
+public let stdLib: Env = [
 "+": intIntOperator({$0 + $1}, "+"),
 "-": intIntOperator({$0 - $1}, "-"),
 "*": intIntOperator({$0 * $1}, "*"),
@@ -177,14 +171,27 @@ let stdLib: Env = [
     }
   }
                 }),
+"print": Expr.fun({ (exprs: [Expr], env: Env) in
+  return unapply(exprs)
+  .flatMap { (head, tail) in
+    switch tail.count {
+    case 0:
+    return .value(head)
+    default: return .error("print takes only one argument.")
+    }
+  }.flatMap { eval($0, env)
+  }.flatMap { .value($0.0)
+  }.forEach { print($0)
+  }.flatMap { _ in .value((Expr.null, env))}
+                  }),
 "quote": Expr.fun({ (exprs: [Expr], env: Env) in
   return unapply(exprs).orElse { _ in
     return .error("Cannot quote empty list")
-  }.flatMap { headTail in
-    if headTail.1.count > 0 {
+  }.flatMap { (head, tail) in
+    if tail.count > 0 {
       return .error("quote takes 1 argument only.")
     } else {
-      return .value((headTail.0, env))
+      return .value((head, env))
     }
   }
                   }),

@@ -1,4 +1,4 @@
-enum Expr {
+public enum Expr {
   case number(Int)
   case list([Expr])
   case variable(String)
@@ -7,7 +7,7 @@ enum Expr {
   case null
 }
 extension Expr: Equatable {
-  static func == (lhs: Expr, rhs: Expr) -> Bool {
+  public static func == (lhs: Expr, rhs: Expr) -> Bool {
     switch (lhs, rhs) {
     case (.number(let nr1), .number(let nr2)):
       return nr1 == nr2
@@ -22,8 +22,8 @@ extension Expr: Equatable {
     }
   }
 }
-typealias EvalResult = Result<(Expr, Env)>
-typealias Env = [String: Expr]
+public typealias EvalResult = Result<(Expr, Env)>
+public typealias Env = [String: Expr]
 
 let getSymbolsFromListExpr: (Expr) -> Result<[String]> = { exprs in
   switch exprs {
@@ -52,7 +52,7 @@ func unapply<T>(_ list: [T]) -> Result<(T, [T])> {
   }
 }
 
-func eval(_ expr: Expr, _ env: Env) -> EvalResult {
+public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .list(let tokenList):
     return unapply(tokenList)
@@ -85,7 +85,7 @@ func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     return .error("Can't eval null")
   }
 }
-func eval(_ exprs: [Expr]) -> Result<Expr> {
+public func eval(_ exprs: [Expr]) -> Result<Expr> {
   return unapply(exprs).flatMap { (head, tail) in
     return tail.reduce(
       eval(head, stdLib), { res, expr in
