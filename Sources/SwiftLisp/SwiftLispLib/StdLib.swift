@@ -77,17 +77,23 @@ public let stdLib: Env = [
   }
                  }),
 "tail": Expr.fun({ (exprs: [Expr], env: Env) in
-  if let firstArg = exprs.first {
-    return eval(firstArg, env).flatMap { firstArgRes in
-      switch firstArgRes.0 {
-      case .list(let list):
-        return .value((Expr.list(Array(list.dropFirst())), env))
-      default:
-        return .error("Can only apply tail to list, got: \(firstArg)")
+  return unapply(exprs).flatMap { (head, _) in
+    return .value(head)
+  }.orElse { _ in
+    return .error("tail must be applied to 1 argument.")
+  }.flatMap { firstArgExpr in
+    eval(firstArgExpr, env)
+  }.flatMap { (firstArgEvaled, _) in
+    switch firstArgEvaled {
+    case Expr.list(let list):
+      return unapply(list).flatMap { (_, tail)  in
+        return .value((Expr.list(tail), env))
+      }.orElse { _ in
+        return .value((Expr.list([]), env))
       }
+    case let other:
+      return .error("Can only apply tail to list, got: \(other)")
     }
-  } else {
-    return .error("tail takes 1 argument, a list.")
   }
                  }),
 "true": Expr.bool(true),
