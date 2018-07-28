@@ -32,6 +32,16 @@ extension Result {
   }
 }
 extension Result {
+  func map<B>(_ fun: (T) -> B) -> Result<B> {
+    switch self {
+    case .value(let val):
+      return .value(fun(val))
+    case .error(let err):
+      return Result<B>.error(err)
+    }
+  }
+}
+extension Result {
   func orElse(_ fun: (String) -> Result<T>) -> Result<T> {
     switch self {
     case .error(let err):
