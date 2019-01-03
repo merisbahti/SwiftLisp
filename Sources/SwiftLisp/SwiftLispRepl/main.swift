@@ -1,5 +1,14 @@
 @testable import SwiftLispLib
-let lexOutput = lex(input: "(print (and 1 2)")
+import Foundation
+var input: String = ""
+while let line = readLine() { input += line }
+let lexOutput = lex(input: input)
 let exprs: [Expr] = read(input: lexOutput)
 let result: Result<Expr> = eval(exprs)
-print(result)
+switch result {
+  case .error(let e):
+    print(e)
+    exit(1)
+  default:
+    exit(0)
+}
