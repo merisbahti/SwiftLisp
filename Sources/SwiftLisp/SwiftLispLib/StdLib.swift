@@ -15,56 +15,92 @@ func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Exp
     }
   })
 }
-func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -> Expr {
-  return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { (head, tail) in
-      return tail.reduce(eval(head, env)) { accRes, expr in
-        return accRes.flatMap { lhsEval in
-          return eval(expr, env).flatMap { rhsEval in
-            switch (lhsEval, rhsEval) {
-            case ((Expr.bool(let nr1), _), (Expr.bool(let nr2), _)):
-              return Result.value((Expr.bool(opr(nr1, nr2)), env))
-            default:
-              return EvalResult.error("No bool in \(symbol) operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)")
-            }
-          }}
+func comparisonOperator(_ symbol: String, _ opr: @escaping (Expr, Expr) -> Bool) -> Expr {
+  return Expr.fun {(exprs: [Expr], env: Env) -> EvalResult in
+    if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
+      return eval(firstArg, env).map { firstRes in
+        firstRes.0
+      }.flatMap { firstRes in
+        eval(secondArg, env).map { secondRes in (firstRes, secondRes.0) }
+      }.flatMap { args in
+        .value((.bool(opr(args.0, args.1)), env))
       }
+    } else {
+      return .error("\(symbol) takes 2 arguments.")
     }
-  })
+  }
 }
-func comparisonOperator(_ opr: @escaping (Expr, Expr) -> Bool, _ symbol: String) -> Expr {
-  return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { (head, tail) in
-      return tail.reduce(eval(head, env)) { accRes, expr in
-        return accRes.flatMap { lhsEval in
-          return eval(expr, env).flatMap { rhsEval in
-            switch (lhsEval, rhsEval) {
-            case ((let expr1, _), (let expr2, _)):
-              return Result.value((Expr.bool(opr(expr1, expr2)), env))
-            }
-          }}
+
+func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -> Expr {
+  return Expr.fun {(exprs: [Expr], env: Env) -> EvalResult in
+    if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
+      return eval(firstArg, env).map { firstRes in
+        firstRes.0
+      }.flatMap { firstRes in
+        eval(secondArg, env).map { secondRes in (firstRes, secondRes.0) }
+      }.flatMap { args in
+          switch (args.0, args.1) {
+          case (.bool(let left), .bool(let right)):
+            return .value((.bool(opr(left, right)), env))
+          default:
+            return .error("Both args to \(symbol) need to be boolean, got: \(args.0) and \(args.1)")
+          }
       }
+    } else {
+      return .error("\(symbol) takes 2 arguments.")
     }
-  })
+  }
 }
 public let stdLib: Env = [
-"+": intIntOperator({$0 + $1}, "+"),
-"-": intIntOperator({$0 - $1}, "-"),
-"*": intIntOperator({$0 * $1}, "*"),
-"/": intIntOperator({$0 / $1}, "/"),
-"and": boolBoolOperator({$0 && $1}, "and"),
-"or": boolBoolOperator({$0 || $1}, "or"),
-"eq": comparisonOperator({$0 == $1}, "eq"),
-"null": Expr.null,
-"head": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).map { (head, _) in
-    head
-  }.orElse { _ in
-    .error("head must be applied to 1 argument.")
-  }.flatMap { firstArgExpr in
-    eval(firstArgExpr, env)
-  }.flatMap { (firstArgEvaled, _) in
-    switch firstArgEvaled {
+  "+": intIntOperator({$0 + $1}, "+"),
+  "-": intIntOperator({$0 - $1}, "-"),
+  "*": intIntOperator({$0 * $1}, "*"),
+  "/": intIntOperator({$0 / $1}, "/"),
+  "and": boolBoolOperator({$0 && $1}, "and"),
+  "or": boolBoolOperator({$0 || $1}, "or"),
+  "eq": comparisonOperator("eq") {$0 == $1},
+  "<": comparisonOperator("<") { a, b in
+      switch (a, b) {
+      case (.number(let left), .number(let right)):
+        return left < right
+      case _:
+        return false
+      }
+    },
+  ">": comparisonOperator(">") { a, b in
+      switch (a, b) {
+      case (.number(let left), .number(let right)):
+        return left > right
+      case _:
+        return false
+      }
+    },
+  ">=": comparisonOperator(">=") { a, b in
+      switch (a, b) {
+      case (.number(let left), .number(let right)):
+        return left >= right
+      case _:
+        return false
+      }
+    },
+  "<=": comparisonOperator("<=") { a, b in
+      switch (a, b) {
+      case (.number(let left), .number(let right)):
+        return left <= right
+      case _:
+        return false
+      }
+    },
+  "null": Expr.null,
+  "head": Expr.fun({ (exprs: [Expr], env: Env) in
+    unapply(exprs).map { (head, _) in
+      head
+    }.orElse { _ in
+      .error("head must be applied to 1 argument.")
+    }.flatMap { firstArgExpr in
+      eval(firstArgExpr, env)
+    }.flatMap { (firstArgEvaled, _) in
+      switch firstArgEvaled {
     case Expr.list(let list):
       return unapply(list).map { (head, _)  in
         return (head, env)

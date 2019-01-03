@@ -107,6 +107,23 @@ final class SwiftLispTests: XCTestCase {
       ("(def a 1 2 3)", Result.error("\"def\" takes 2 arguments.")),
       (
         """
+        (def f
+          (fn (n)
+            (cond
+              ((< n 3) 3)
+              (true (+
+                (* 1 (f (- n 1)))
+                (* 2 (f (- n 2)))
+                (* 3 (f (- n 3)))
+              ))
+          ))
+        )
+        (f 5)
+        """,
+        .value(.number(78))
+        ),
+      (
+        """
         (def filter
           (fn (pred xs)
           (cond
@@ -117,8 +134,7 @@ final class SwiftLispTests: XCTestCase {
           )
         )
         (filter (fn (x) (eq 2 x)) (quote (1 2 3 2 4 5 2)))
-        """
-       , Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)])))
+        """, Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)])))
   ]
 
   func testExample() {
@@ -128,8 +144,9 @@ final class SwiftLispTests: XCTestCase {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct
     // results.
-
+    var count = 0
     SwiftLispTests.testProgramsAndValues.forEach { tup in
+      count += 1
       let program = tup.0
       let expected = tup.1
       let lexOutput = lex(input: program)
@@ -144,6 +161,7 @@ final class SwiftLispTests: XCTestCase {
         print("       Expected: \(pink("\(expected)"))")
       }
     }
+    print("Tests succeeded: \(SwiftLispTests.testProgramsAndValues.count)/\(count)")
   }
 
   static var allTests = [
