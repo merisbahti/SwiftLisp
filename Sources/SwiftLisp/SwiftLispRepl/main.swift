@@ -1,14 +1,12 @@
 @testable import SwiftLispLib
 import Foundation
-doThing()
 let arguments = CommandLine.arguments
 if (arguments.count == 2) {
   let filePath = arguments[1]
   let fileContent = try? String(contentsOfFile: filePath)
   if let input = fileContent {
-    let lexOutput = lex(input: input)
-    let exprs: [Expr] = read(input: lexOutput)
-    let result: Result<Expr> = eval(exprs)
+    let exprs: Result<[Expr]> = read(input: input)
+    let result: Result<Expr> = exprs.flatMap { eval($0) }
     switch result {
     case .error(let e):
       print(e)

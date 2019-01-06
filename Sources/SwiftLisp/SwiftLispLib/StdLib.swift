@@ -15,6 +15,23 @@ func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Exp
     }
   })
 }
+func stringStringOperator(_ opr: @escaping (String, String) -> String, _ symbol: String) -> Expr {
+  return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
+    return unapply(exprs).flatMap { (head, tail) in
+      return tail.reduce(eval(head, env)) { accRes, expr in
+        return accRes.flatMap { lhsEval in
+          return eval(expr, env).flatMap { rhsEval in
+            switch (lhsEval, rhsEval) {
+            case ((Expr.string(let nr1), _), (Expr.string(let nr2), _)):
+              return Result.value((Expr.string(opr(nr1, nr2)), env))
+            default:
+              return EvalResult.error("No number in \(symbol) operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)")
+            }
+          }}
+      }
+    }
+  })
+}
 func comparisonOperator(_ symbol: String, _ opr: @escaping (Expr, Expr) -> Bool) -> Expr {
   return Expr.fun {(exprs: [Expr], env: Env) -> EvalResult in
     if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
@@ -53,6 +70,7 @@ func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -
 }
 public let stdLib: Env = [
   "+": intIntOperator({$0 + $1}, "+"),
+  "str-append": stringStringOperator({$0 + $1}, "str-append"),
   "-": intIntOperator({$0 - $1}, "-"),
   "*": intIntOperator({$0 * $1}, "*"),
   "/": intIntOperator({$0 / $1}, "/"),
@@ -92,7 +110,7 @@ public let stdLib: Env = [
       }
     },
   "null": Expr.null,
-  "head": Expr.fun({ (exprs: [Expr], env: Env) in
+  "head": Expr.fun { (exprs: [Expr], env: Env) in
     unapply(exprs).map { (head, _) in
       head
     }.orElse { _ in
@@ -101,43 +119,44 @@ public let stdLib: Env = [
       eval(firstArgExpr, env)
     }.flatMap { (firstArgEvaled, _) in
       switch firstArgEvaled {
-    case Expr.list(let list):
-      return unapply(list).map { (head, _)  in
-        return (head, env)
-      }.orElse { _ in
-        return .value((Expr.null, env))
+      case Expr.list(let list):
+        return unapply(list).map { (head, _)  in
+          return (head, env)
+        }.orElse { _ in
+          return .value((Expr.null, env))
+        }
+      case let other:
+        return .error("Can only apply head to list, got: \(other)")
       }
-    case let other:
-      return .error("Can only apply head to list, got: \(other)")
     }
-  }
-                 }),
-"tail": Expr.fun({ (exprs: [Expr], env: Env) in
-  unapply(exprs).map { (head, _) in
-    head
-  }.orElse { _ in
-    .error("tail must be applied to 1 argument.")
-  }.flatMap { firstArgExpr in
-    eval(firstArgExpr, env)
-  }.flatMap { (firstArgEvaled, _) in
-    switch firstArgEvaled {
-    case Expr.list(let list):
-      return unapply(list).map { (_, tail)  in
-        return (Expr.list(tail), env)
-      }.orElse { _ in
-        return .value((Expr.list([]), env))
+  },
+  "tail": Expr.fun { (exprs: [Expr], env: Env) in
+    unapply(exprs).map { (head, _) in
+      head
+    }.orElse { _ in
+      .error("tail must be applied to 1 argument.")
+    }.flatMap { firstArgExpr in
+      eval(firstArgExpr, env)
+    }.flatMap { (firstArgEvaled, _) in
+      switch firstArgEvaled {
+      case Expr.list(let list):
+        return unapply(list).map { (_, tail)  in
+          return (Expr.list(tail), env)
+        }.orElse { _ in
+          return .value((Expr.list([]), env))
+        }
+      case let other:
+        return .error("Can only apply tail to list, got: \(other)")
       }
-    case let other:
-      return .error("Can only apply tail to list, got: \(other)")
     }
-  }
-                 }),
+  },
 "true": Expr.bool(true),
 "false": Expr.bool(false),
-"cond": Expr.fun({ (exprs: [Expr], env: Env) in
+"cond": Expr.fun { (exprs: [Expr], env: Env) in
   return (
     exprs.reduce(
-      Result.value(Expr.null), { (acc: Result<Expr>, condExpr: Expr) in
+      Result.value(Expr.null), {
+        (acc: Result<Expr>, condExpr: Expr) in
         return acc.flatMap { (accExpr: Expr) in
           switch accExpr {
           case Expr.null:
@@ -171,8 +190,8 @@ public let stdLib: Env = [
       return .value(($0, env))
     }
 
-}),
-"cons": Expr.fun({ (exprs: [Expr], env: Env) in
+},
+"cons": Expr.fun { (exprs: [Expr], env: Env) in
   if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
     return eval(firstArg, env).flatMap { firstRes in
       return eval(secondArg, env).flatMap { secondRes in
@@ -187,8 +206,8 @@ public let stdLib: Env = [
   } else {
     return .error("takes 2 arguments, an element and a list.")
   }
-                 }),
-"def": Expr.fun({ (exprs: [Expr], env: Env) in
+},
+"def": Expr.fun { (exprs: [Expr], env: Env) in
   if exprs.count != 2 {
     return .error("\"def\" takes 2 arguments.")
   }
@@ -213,32 +232,38 @@ public let stdLib: Env = [
         ))
     }
   }
-                }),
-"print": Expr.fun({ (exprs: [Expr], env: Env) in
+},
+"print": Expr.fun { (exprs: [Expr], env: Env) in
   return unapply(exprs)
   .flatMap { (head, tail) in
     switch tail.count {
     case 0:
-    return .value(head)
-    default: return .error("print takes only one argument.")
+      return .value(head)
+      default: return .error("print takes only one argument.")
     }
   }.flatMap { eval($0, env)
   }.flatMap { .value($0.0)
-  }.forEach { print($0)
-  }.flatMap { _ in .value((Expr.null, env))}
-                  }),
-"quote": Expr.fun({ (exprs: [Expr], env: Env) in
-  return unapply(exprs).orElse { _ in
-    return .error("Cannot quote empty list")
-  }.flatMap { (head, tail) in
-    if tail.count > 0 {
-      return .error("quote takes 1 argument only.")
-    } else {
-      return .value((head, env))
+  }.forEach { value in
+    switch value {
+    case .string(let a):
+      print(a)
+    default:
+      print(value)
     }
-  }
-                  }),
-"fn": Expr.fun({ (exprs: [Expr], env: Env) in
+  }.flatMap { _ in .value((Expr.null, env))}
+  },
+  "quote": Expr.fun { (exprs: [Expr], env: Env) in
+    return unapply(exprs).orElse { _ in
+      return .error("Cannot quote empty list")
+    }.flatMap { (head, tail) in
+      if tail.count > 0 {
+        return .error("quote takes 1 argument only.")
+      } else {
+        return .value((head, env))
+      }
+    }
+  },
+"fn": Expr.fun { (exprs: [Expr], env: Env) in
   let head = exprs.first
   let body = exprs.dropFirst().first
   if head == nil {
@@ -280,5 +305,5 @@ public let stdLib: Env = [
       return .error("Second argument to fn should be a list, got: \(other)")
     }
   }
-})
+}
 ]

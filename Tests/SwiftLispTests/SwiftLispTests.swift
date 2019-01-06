@@ -24,7 +24,7 @@ final class SwiftLispTests: XCTestCase {
       Expr.number(3)
     ])
     )),
-    ("(cons 1 (tail (quote (1 2 3)))", Result.value(Expr.list([
+    ("(cons 1 (tail (quote (1 2 3))))", Result.value(Expr.list([
       Expr.number(1),
       Expr.number(2),
       Expr.number(3)
@@ -38,9 +38,7 @@ final class SwiftLispTests: XCTestCase {
     ("(eq 2 2)", Result.value(Expr.bool(true))),
     ("(eq 2 3)", Result.value(Expr.bool(false))),
     ("""
-     (def f (
-     fn (a) (cond ((eq a 5) 1337
-     ))))
+     (def f (fn (a) (cond ((eq a 5) 1337))))
      (f 5)
      """, Result.value(Expr.number(1337))),
     ("""
@@ -134,7 +132,12 @@ final class SwiftLispTests: XCTestCase {
           )
         )
         (filter (fn (x) (eq 2 x)) (quote (1 2 3 2 4 5 2)))
-        """, Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)])))
+        """, Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)]))
+        ),
+      ("""
+       (str-append "hello" "" " " "" "world")
+       """, Result.value(.string("hello world"))
+      )
   ]
 
   func testExample() {
@@ -146,22 +149,21 @@ final class SwiftLispTests: XCTestCase {
     // results.
     var count = 0
     SwiftLispTests.testProgramsAndValues.forEach { tup in
-      count += 1
       let program = tup.0
       let expected = tup.1
-      let lexOutput = lex(input: program)
-      let exprs: [Expr] = read(input: lexOutput)
-      let result: Result<Expr> = eval(exprs)
+      let exprs: Result<[Expr]> = read(input: program)
+      let result: Result<Expr> = exprs.flatMap { eval($0) }
       XCTAssertTrue(expected == result)
       if expected == result {
-        print("\(green("OK")): Expr \(pink(exprs.description)) gives \(pink("\(result)"))")
+        count += 1
+        print("\(green("OK")): \(exprs) gives \(pink("\(result)"))")
       } else {
-        print("\(red("ERROR")): Expr \(pink(exprs.description))")
+        print("\(red("ERROR")): \(exprs)")
         print("       Result:   \(pink("\(result)"))")
         print("       Expected: \(pink("\(expected)"))")
       }
     }
-    print("Tests succeeded: \(SwiftLispTests.testProgramsAndValues.count)/\(count)")
+    print("Tests succeeded: \(count)/\(SwiftLispTests.testProgramsAndValues.count)")
   }
 
   static var allTests = [

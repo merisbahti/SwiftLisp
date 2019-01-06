@@ -1,3 +1,5 @@
+import SwiftParsec
+
 extension Expr: CustomStringConvertible {
   public var description: String {
     switch self {
@@ -13,33 +15,52 @@ extension Expr: CustomStringConvertible {
       return "null"
     case Expr.bool(let bool):
       return "\(bool)"
+    case .string(let str):
+      return "\"\(str)\""
     }
   }
 }
 
-func read(input: [String]) -> [Expr] {
-  let result = read2(input: input)
-  return result.0
+private func NumberOrVariable (val: String) -> Expr {
+  if let int = Int(val) {
+    return .number(int)
+  } else {
+    return .variable(val)
+  }
 }
 
-func read2(input: [String]) -> ([Expr], [String]) {
-  let head = input.first
-  let tail = Array(input.dropFirst())
-  switch head {
-  case "(":
-    let newresult = read2(input: tail)
-    let newResultTail = read2(input: newresult.1)
-    return ([Expr.list(newresult.0)] + newResultTail.0, newResultTail.1)
-  case ")":
-    return ([], tail)
-  case let str where str != nil:
-    let newresult = read2(input: tail)
-    if let int = Int(str!) {
-      return ([Expr.number(int)] + newresult.0, newresult.1)
-    } else {
-      return ([Expr.variable(str!)] + newresult.0, newresult.1)
-    }
-  default:
-    return ([], [])
+private func parseExpr () -> GenericParser<String, (), Expr> {
+  let skip = StringParser.oneOf("  \n\r").many
+  let oparen = StringParser.character("(")
+  let cparen = StringParser.character(")")
+
+  let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789"
+  let atom = NumberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
+
+  let string = Expr.string <^> (
+    StringParser.oneOf("\"").stringValue *>
+    StringParser.noneOf("\"").many.stringValue <*
+    StringParser.oneOf("\"").stringValue
+  )
+
+  var parseList: GenericParser<String, (), Expr>!
+  let parseExpr = GenericParser.recursive { (exprParser: GenericParser<String, (), Expr>) in
+    parseList = Expr.list <^> (oparen *> exprParser.many <* cparen)
+    return skip *> (atom <|> parseList <|> string) <* skip
+  }
+  return parseExpr
+}
+
+private let parseProgram = parseExpr().many1
+
+func read (input: String) -> Result<[Expr]> {
+  let parser = parseProgram
+  do {
+    let exprs = try parser.run(sourceName: "", input: input)
+    return Result.value(exprs)
+  } catch let parseError as ParseError {
+    return .error("parse error at:" + String(describing: parseError))
+  } catch let error {
+    return .error(String(describing: error))
   }
 }
