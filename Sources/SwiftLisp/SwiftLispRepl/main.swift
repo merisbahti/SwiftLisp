@@ -1,5 +1,6 @@
 @testable import SwiftLispLib
 import Foundation
+doThing()
 let arguments = CommandLine.arguments
 if (arguments.count == 2) {
   let filePath = arguments[1]
