@@ -21,7 +21,7 @@ extension Expr: CustomStringConvertible {
   }
 }
 
-private func NumberOrVariable (val: String) -> Expr {
+private func numberOrVariable (val: String) -> Expr {
   if let int = Int(val) {
     return .number(int)
   } else {
@@ -29,13 +29,16 @@ private func NumberOrVariable (val: String) -> Expr {
   }
 }
 
+func quoted (_ expr: Expr) -> Expr { return Expr.list([Expr.variable("quote"), expr]) }
+
 private func parseExpr () -> GenericParser<String, (), Expr> {
   let skip = StringParser.oneOf("  \n\r").many
   let oparen = StringParser.character("(")
   let cparen = StringParser.character(")")
+  let quote = StringParser.character("'")
 
   let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789"
-  let atom = NumberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
+  let atom = numberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
 
   let string = Expr.string <^> (
     StringParser.oneOf("\"").stringValue *>
@@ -43,10 +46,14 @@ private func parseExpr () -> GenericParser<String, (), Expr> {
     StringParser.oneOf("\"").stringValue
   )
 
-  var parseList: GenericParser<String, (), Expr>!
-  let parseExpr = GenericParser.recursive { (exprParser: GenericParser<String, (), Expr>) in
-    parseList = Expr.list <^> (oparen *> exprParser.many <* cparen)
-    return skip *> (atom <|> parseList <|> string) <* skip
+  let parseExpr = GenericParser.recursive { (parseExpr: GenericParser<String, (), Expr>) in
+    let parseList: GenericParser<String, (), Expr>! = (
+      Expr.list <^> (oparen *> parseExpr.many <* cparen)
+    )
+    let parseQuoted: GenericParser<String, (), Expr>! = (
+      quoted <^> (quote *> parseExpr)
+    )
+    return skip *> (atom <|> parseList <|> string <|> parseQuoted) <* skip
   }
   return parseExpr
 }

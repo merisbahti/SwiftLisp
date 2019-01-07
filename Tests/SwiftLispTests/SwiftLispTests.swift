@@ -16,15 +16,15 @@ final class SwiftLispTests: XCTestCase {
       "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))",
       Result.value(Expr.number(-8))
       ),
-    ("(head (quote (1 2 3)))", Result.value(Expr.number(1))),
-    ("(tail (quote (1 2 3)))", Result.value(Expr.list([Expr.number(2), Expr.number(3)]))),
-    ("(cons 1 (quote (2 3)))", Result.value(Expr.list([
+    ("(head '(1 2 3))", Result.value(Expr.number(1))),
+    ("(tail '(1 2 3))", Result.value(Expr.list([Expr.number(2), Expr.number(3)]))),
+    ("(cons 1 '(2 3))", Result.value(Expr.list([
       Expr.number(1),
       Expr.number(2),
       Expr.number(3)
     ])
     )),
-    ("(cons 1 (tail (quote (1 2 3))))", Result.value(Expr.list([
+    ("(cons 1 (tail '(1 2 3)))", Result.value(Expr.list([
       Expr.number(1),
       Expr.number(2),
       Expr.number(3)
@@ -45,7 +45,7 @@ final class SwiftLispTests: XCTestCase {
      (def f (
      fn (a) (
      cond
-     ((eq a 0) (quote (1 3 3 7)))
+     ((eq a 0) '(1 3 3 7))
      (true (f (- a 1)))
     )
     ))
@@ -76,25 +76,25 @@ final class SwiftLispTests: XCTestCase {
     ("""
      (def map (
      fn (f xs) (cond
-     ((eq (head xs) null) (quote ()))
+     ((eq (head xs) null) '())
      (true (cons
      (f (head xs))
      (map f (tail xs))
      ))
      )))
-     (map (fn (x) (+ x 1)) (quote (1 2 3)))
+     (map (fn (x) (+ x 1)) '(1 2 3))
      """, Result.value(Expr.list([
        Expr.number(2),
        Expr.number(3),
        Expr.number(4)
      ]))),
-     ("(quote (1 2 3))",
+     ("'(1 2 3)",
       Result.value(Expr.list([
         Expr.number(1),
         Expr.number(2),
         Expr.number(3)
       ]))),
-      ("(quote (1 2 3))", Result.value(
+      ("'(1 2 3)", Result.value(
         Expr.list([
           Expr.number(1),
           Expr.number(2),
@@ -125,13 +125,13 @@ final class SwiftLispTests: XCTestCase {
         (def filter
           (fn (pred xs)
           (cond
-            ((eq xs (quote ())) (quote ()))
+            ((eq xs '()) '())
             ((pred (head xs)) (cons (head xs) (filter pred (tail xs))))
             (true (filter pred (tail xs)))
           )
           )
         )
-        (filter (fn (x) (eq 2 x)) (quote (1 2 3 2 4 5 2)))
+        (filter (fn (x) (eq 2 x)) '(1 2 3 2 4 5 2))
         """, Result.value(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)]))
         ),
       ("""

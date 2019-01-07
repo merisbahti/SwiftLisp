@@ -56,9 +56,9 @@ func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -
       }.flatMap { firstRes in
         eval(secondArg, env).map { secondRes in (firstRes, secondRes.0) }
       }.flatMap { args in
-          switch (args.0, args.1) {
-          case (.bool(let left), .bool(let right)):
-            return .value((.bool(opr(left, right)), env))
+        switch (args.0, args.1) {
+        case (.bool(let left), .bool(let right)):
+          return .value((.bool(opr(left, right)), env))
           default:
             return .error("Both args to \(symbol) need to be boolean, got: \(args.0) and \(args.1)")
           }
