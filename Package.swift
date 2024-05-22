@@ -13,7 +13,8 @@ let package = Package(
     .executable(name: "SwiftLispRepl", targets: ["SwiftLispRepl"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/davedufresne/SwiftParsec", from: "4.0.0")
+    .package(url: "https://github.com/davedufresne/SwiftParsec", from: "4.0.0"),
+    .package(url: "https://github.com/apple/swift-testing.git", branch: "main"),
   ],
   targets: [
     .target(
@@ -28,7 +29,10 @@ let package = Package(
     ),
     .testTarget(
       name: "SwiftLispTest",
-      dependencies: ["SwiftLispLib"]
+      dependencies: [
+        "SwiftLispLib",
+        .product(name: "Testing", package: "swift-testing"),
+      ]
     ),
     // ,
   ]

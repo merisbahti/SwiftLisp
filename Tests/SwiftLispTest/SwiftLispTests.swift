@@ -1,9 +1,13 @@
-import XCTest
+import Testing
 
 @testable import SwiftLispLib
 
-final class SwiftLispTests: XCTestCase {
-  static let testProgramsAndValues: [(String, Result<SwiftLispLib.Expr, EvalError>)] = [
+@Test(
+  "a bunch of programs",
+  arguments: [
+    ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(SwiftLispLib.Expr.number(186))),
+    ("(+ 1 2)", .success(Expr.number(3))),
+    ("(+ a 3)", makeEvalError("Variable not found: a")),
     ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(SwiftLispLib.Expr.number(186))),
     ("(+ 1 2)", .success(Expr.number(3))),
     ("(+ a 3)", makeEvalError("Variable not found: a")),
@@ -169,36 +173,12 @@ final class SwiftLispTests: XCTestCase {
       """, .success(.string("hello world"))
     ),
   ]
+)
+func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
 
-  func testExample() {
-    func green(_ str: String) -> String { return "\u{001B}[0;32m\(str)\u{001B}[0;37m" }
-    func red(_ str: String) -> String { return "\u{001B}[0;31m\(str)\u{001B}[0;37m" }
-    func pink(_ str: String) -> String { return "\u{001B}[0;35m\(str)\u{001B}[0;37m" }
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct
-    // results.
-    var count = 0
-    SwiftLispTests.testProgramsAndValues.forEach { tup in
-      let program = tup.0
-      let expected = tup.1
-      let exprs: Result<[Expr], EvalError> = SwiftLispLib.read(input: program)
-      let result: Result<Expr, EvalError> = exprs.flatMap { eval($0) }
-      XCTAssertTrue(expected == result)
-      if expected == result {
-        count += 1
-        print("\(green("OK")): \(exprs) gives \(pink("\(result)"))")
-      } else {
-        print("\(red("ERROR")): \(exprs)")
-        print("       Result:   \(pink("\(result)"))")
-        print("       Expected: \(pink("\(expected)"))")
-      }
-    }
-    print("Tests succeeded: \(count)/\(SwiftLispTests.testProgramsAndValues.count)")
-  }
+  let (program, expectedResult) = tuple
 
-  static var allTests: [String] = [
-
-    //    ("testExample", testExample)
-  ]
-
+  let exprs: Result<[Expr], EvalError> = SwiftLispLib.read(input: program)
+  let result: Result<Expr, EvalError> = exprs.flatMap { eval($0) }
+  #expect(result == expectedResult)
 }
