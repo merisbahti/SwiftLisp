@@ -56,7 +56,7 @@ private func parseExpr() -> GenericParser<String, (), Expr> {
 
 private let parseProgram = parseExpr().many1
 
-func read(input: String) -> Result<[Expr], EvalError> {
+public func read(input: String) -> Result<[Expr], EvalError> {
   let parser = parseProgram
   do {
     let exprs = try parser.run(sourceName: "", input: input)

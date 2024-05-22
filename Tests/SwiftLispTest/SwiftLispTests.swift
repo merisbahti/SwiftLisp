@@ -3,8 +3,8 @@ import XCTest
 @testable import SwiftLispLib
 
 final class SwiftLispTests: XCTestCase {
-  static let testProgramsAndValues = [
-    ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(Expr.number(186))),
+  static let testProgramsAndValues: [(String, Result<SwiftLispLib.Expr, EvalError>)] = [
+    ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(SwiftLispLib.Expr.number(186))),
     ("(+ 1 2)", .success(Expr.number(3))),
     ("(+ a 3)", makeEvalError("Variable not found: a")),
     ("(- 3 5)", .success(Expr.number(-2))),
@@ -181,7 +181,7 @@ final class SwiftLispTests: XCTestCase {
     SwiftLispTests.testProgramsAndValues.forEach { tup in
       let program = tup.0
       let expected = tup.1
-      let exprs: Result<[Expr], EvalError> = read(input: program)
+      let exprs: Result<[Expr], EvalError> = SwiftLispLib.read(input: program)
       let result: Result<Expr, EvalError> = exprs.flatMap { eval($0) }
       XCTAssertTrue(expected == result)
       if expected == result {
@@ -196,7 +196,9 @@ final class SwiftLispTests: XCTestCase {
     print("Tests succeeded: \(count)/\(SwiftLispTests.testProgramsAndValues.count)")
   }
 
-  static var allTests = [
-    ("testExample", testExample)
+  static var allTests: [String] = [
+
+    //    ("testExample", testExample)
   ]
+
 }
