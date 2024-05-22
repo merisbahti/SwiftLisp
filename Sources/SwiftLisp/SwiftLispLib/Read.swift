@@ -21,7 +21,7 @@ extension Expr: CustomStringConvertible {
   }
 }
 
-private func numberOrVariable (val: String) -> Expr {
+private func numberOrVariable(val: String) -> Expr {
   if let int = Int(val) {
     return .number(int)
   } else {
@@ -29,9 +29,9 @@ private func numberOrVariable (val: String) -> Expr {
   }
 }
 
-func quoted (_ expr: Expr) -> Expr { return Expr.list([Expr.variable("quote"), expr]) }
+func quoted(_ expr: Expr) -> Expr { return Expr.list([Expr.variable("quote"), expr]) }
 
-private func parseExpr () -> GenericParser<String, (), Expr> {
+private func parseExpr() -> GenericParser<String, (), Expr> {
   let skip = StringParser.oneOf("  \n\r").many
   let oparen = StringParser.character("(")
   let cparen = StringParser.character(")")
@@ -40,19 +40,15 @@ private func parseExpr () -> GenericParser<String, (), Expr> {
   let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789"
   let atom = numberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
 
-  let string = Expr.string <^> (
-    StringParser.oneOf("\"").stringValue *>
-    StringParser.noneOf("\"").many.stringValue <*
-    StringParser.oneOf("\"").stringValue
-  )
+  let string =
+    Expr.string
+    <^> (StringParser.oneOf("\"").stringValue *> StringParser.noneOf("\"").many.stringValue
+      <* StringParser.oneOf("\"").stringValue)
 
   let parseExpr = GenericParser.recursive { (parseExpr: GenericParser<String, (), Expr>) in
-    let parseList: GenericParser<String, (), Expr>! = (
-      Expr.list <^> (oparen *> parseExpr.many <* cparen)
-    )
-    let parseQuoted: GenericParser<String, (), Expr>! = (
-      quoted <^> (quote *> parseExpr)
-    )
+    let parseList: GenericParser<String, (), Expr>! =
+      (Expr.list <^> (oparen *> parseExpr.many <* cparen))
+    let parseQuoted: GenericParser<String, (), Expr>! = (quoted <^> (quote *> parseExpr))
     return skip *> (atom <|> parseList <|> string <|> parseQuoted) <* skip
   }
   return parseExpr
@@ -60,14 +56,14 @@ private func parseExpr () -> GenericParser<String, (), Expr> {
 
 private let parseProgram = parseExpr().many1
 
-func read (input: String) -> Result<[Expr]> {
+func read(input: String) -> Result<[Expr], EvalError> {
   let parser = parseProgram
   do {
     let exprs = try parser.run(sourceName: "", input: input)
-    return Result.value(exprs)
+    return .success(exprs)
   } catch let parseError as ParseError {
-    return .error("parse error at:" + String(describing: parseError))
+    return .failure(EvalError(message: "parse error at:" + String(describing: parseError)))
   } catch let error {
-    return .error(String(describing: error))
+    return .failure(EvalError(message: (String(describing: error))))
   }
 }

@@ -27,7 +27,12 @@ let package = Package(
       path: "Sources/SwiftLisp/SwiftLispRepl"
     ),
     .testTarget(
-      name: "SwiftLispTests",
-      dependencies: ["SwiftLispLib"]),
+      name: "SwiftLispTest"
+        // ,
+        // path: "Tests/SwiftLispTests"
+        // ,
+        // dependencies: ["SwiftLispLib"]
+    ),
+    // ,
   ]
 )

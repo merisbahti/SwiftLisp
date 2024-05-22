@@ -1,3 +1,7 @@
+public struct EvalError: Error {
+  let message: String
+}
+
 public enum Expr {
   case number(Int)
   case string(String)
@@ -7,6 +11,7 @@ public enum Expr {
   case bool(Bool)
   case null
 }
+
 extension Expr: Equatable {
   public static func == (lhs: Expr, rhs: Expr) -> Bool {
     switch (lhs, rhs) {
@@ -25,33 +30,38 @@ extension Expr: Equatable {
     }
   }
 }
-public typealias EvalResult = Result<(Expr, Env)>
+
+public typealias EvalResult = Result<(Expr, Env), EvalError>
 public typealias Env = [String: Expr]
 
-let getSymbolsFromListExpr: (Expr) -> Result<[String]> = { exprs in
+public func makeEvalError<A>(_ msg: String) -> Result<A, EvalError> {
+  .failure(EvalError(message: msg))
+}
+
+let getSymbolsFromListExpr: (Expr) -> Result<[String], EvalError> = { exprs in
   switch exprs {
   case .list(let list):
-    return list.reduce(Result<[String]>.value([])) { acc, expr in
+    return list.reduce(.success([])) { acc, expr in
       return acc.flatMap { resultAcc in
         switch expr {
         case .variable(let str):
-          return .value(resultAcc + [str])
+          return .success(resultAcc + [str])
         default:
-          return Result<[String]>.error("All members in expr must be symbol.")
+          return .failure(EvalError(message: "All members in expr must be symbol."))
         }
       }
     }
   case let other:
-    return Result<[String]>.error("Expected list, got: \(other)")
+    return .failure(EvalError(message: "Expected list, got: \(other)"))
   }
 }
-func unapply<T>(_ list: [T]) -> Result<(T, [T])> {
+func unapply<T>(_ list: [T]) -> Result<(T, [T]), EvalError> {
   let head = list.first
   let tail = list.dropFirst()
   if let head = head {
-    return Result<(T, [T])>.value((head, Array(tail)))
+    return .success((head, Array(tail)))
   } else {
-    return Result<(T, [T])>.error("Failure to unpack list.")
+    return .failure(EvalError(message: ("Failure to unpack list.")))
   }
 }
 
@@ -59,38 +69,42 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .list(let tokenList):
     return unapply(tokenList)
-    .flapFlap("Cannot evaluate empty list: \(tokenList)")
-    .flatMap { (headTail: (Expr, [Expr])) in
-      let head = headTail.0
-      let tail = headTail.1
-      return eval(head, env).flatMap { headExpr, env in
-        switch headExpr {
-        case .fun(let fun):
-          return fun(tail, env)
-        case _:
-          return .error("Head of list is not a function, \(head) in list \(expr)")
+      .mapError { x in
+        EvalError(message: "Cannot evaluate empty list: \(tokenList)")
+      }
+      .flatMap { (headTail: (Expr, [Expr])) in
+        let head = headTail.0
+        let tail = headTail.1
+        return eval(head, env).flatMap { headExpr, env in
+          switch headExpr {
+          case .fun(let fun):
+            return fun(tail, env)
+          case _:
+            return .failure(
+              EvalError(message: "Head of list is not a function, \(head) in list \(expr)"))
+          }
         }
       }
-    }
   case .variable(let val):
     if let expr = env[val] {
-      return .value((expr, env))
-     } else {
-      return .error("Variable not found: \(val)")
+      return .success((expr, env))
+    } else {
+      return .failure(EvalError(message: "Variable not found: \(val)"))
     }
   case .fun:
-    return .error("Cannot evaluate function.")
+    return .failure(EvalError(message: "Cannot evaluate function."))
   case .null:
-    return .error("Can't eval null")
+    return .failure(EvalError(message: "Can't eval null"))
   default:
-    return .value((expr, env))
+    return .success((expr, env))
   }
 }
-public func eval(_ exprs: [Expr]) -> Result<Expr> {
+public func eval(_ exprs: [Expr]) -> Result<Expr, EvalError> {
   return unapply(exprs).flatMap { (head, tail) in
     return tail.reduce(
-      eval(head, stdLib), { res, expr in
+      eval(head, stdLib),
+      { res, expr in
         return res.flatMap { _, newEnv in return eval(expr, newEnv) }
       })
-  }.flatMap { return .value($0.0)}
+  }.map { $0.0 }
 }

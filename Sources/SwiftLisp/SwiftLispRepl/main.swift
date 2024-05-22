@@ -1,17 +1,20 @@
-@testable import SwiftLispLib
 import Foundation
+
+@testable import SwiftLispLib
+
 let arguments = CommandLine.arguments
-if (arguments.count == 2) {
+if arguments.count == 2 {
   let filePath = arguments[1]
   let fileContent = try? String(contentsOfFile: filePath)
   if let input = fileContent {
-    let exprs: Result<[Expr]> = read(input: input)
-    let result: Result<Expr> = exprs.flatMap { eval($0) }
+    let exprs: Result<[Expr], EvalError> = read(input: input)
+    let result: Result<Expr, EvalError> = exprs.flatMap { eval($0) }
     switch result {
-    case .error(let e):
+    case .failure(let e):
       print(e)
       exit(1)
-    default:
+    case .success(let e):
+      print(e)
       exit(0)
     }
   } else {
