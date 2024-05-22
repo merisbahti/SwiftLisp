@@ -74,23 +74,17 @@ func unapply<T>(_ list: [T]) -> Result<(T, [T]), EvalError> {
 public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .list(let tokenList):
-    return unapply(tokenList)
-      .mapError { x in
-        EvalError(message: "Cannot evaluate empty list: \(tokenList)")
-      }
-      .flatMap { (headTail: (Expr, [Expr])) in
-        let head = headTail.0
-        let tail = headTail.1
-        return eval(head, env).flatMap { headExpr, env in
-          switch headExpr {
-          case .fun(let fun):
-            return fun(tail, env)
-          case _:
-            return .failure(
-              EvalError(message: "Head of list is not a function, \(head) in list \(expr)"))
-          }
-        }
-      }
+    guard case .success((let head, let tail)) = unapply(tokenList) else {
+      return makeEvalError("Cannot evaluate empty list: \(tokenList)")
+    }
+
+    guard case .success((.fun(let fn), _)) = eval(head, env) else {
+      return .failure(
+        EvalError(message: "Head of list is not a function, \(head) in list \(expr)")
+      )
+    }
+
+    return fn(tail, env)
   case .variable(let val):
     if let expr = env[val] {
       return .success((expr, env))
