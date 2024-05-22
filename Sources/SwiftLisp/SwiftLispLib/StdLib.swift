@@ -316,7 +316,7 @@ public let stdLib: Env = [
     return Result.success(
       (
         Expr.fun({ (fnArgs, fnEnv) in
-          if fnArgs.capacity != symbols.capacity {
+          if fnArgs.count != symbols.count {
             return makeEvalError(
               "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
           }
