@@ -2,6 +2,12 @@ public struct EvalError: Error {
   let message: String
 }
 
+extension EvalError: Equatable {
+  public static func == (lhs: EvalError, rhs: EvalError) -> Bool {
+    return lhs.message == rhs.message
+  }
+}
+
 public enum Expr {
   case number(Int)
   case string(String)
