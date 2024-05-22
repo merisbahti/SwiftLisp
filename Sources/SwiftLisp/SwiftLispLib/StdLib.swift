@@ -290,15 +290,13 @@ public let stdLib: Env = [
       }
   },
   "quote": Expr.fun { (exprs: [Expr], env: Env) in
-    return unapply(exprs).flatMapError { _ in
+    guard case .success((let head, let tail)) = unapply(exprs) else {
       return makeEvalError("Cannot quote empty list")
-    }.flatMap { (head, tail) in
-      if tail.count > 0 {
-        return makeEvalError("quote takes 1 argument only.")
-      } else {
-        return .success((head, env))
-      }
     }
+    if tail.count > 0 {
+      return makeEvalError("quote takes 1 argument only.")
+    }
+    return .success((head, env))
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
     let head = exprs.first
