@@ -1,21 +1,29 @@
 func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Expr {
   return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
-    return unapply(exprs).flatMap { (head, tail) in
-      return tail.reduce(eval(head, env)) { accRes, expr in
-        return accRes.flatMap { lhsEval in
-          return eval(expr, env).flatMap { rhsEval in
-            switch (lhsEval, rhsEval) {
-            case ((Expr.number(let nr1), _), (Expr.number(let nr2), _)):
-              return Result.success((Expr.number(opr(nr1, nr2)), env))
-            default:
-              return makeEvalError(
-                "No number in \(symbol) operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)"
-              )
-            }
-          }
-        }
+    let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
+
+    let exprsVerified: Result<[Int], EvalError> = exprsEvaled.reduce(.success([])) { acc, curr in
+      switch (acc, curr) {
+      case (.failure(let evalError), _): return .failure(evalError)
+      case (.success(let acc), .success((.number(let nr), _))):
+        return .success(acc.appending(nr))
+      case (_, .success(let expr)):
+        return makeEvalError("Error evaling \(symbol), expected numbers but found: \(expr)")
+      case (_, .failure(let evalFailure)):
+        return .failure(evalFailure)
       }
     }
+
+    guard case let .success(ints) = exprsVerified else {
+      return exprsVerified.map { _ in (.number(0), env) }
+    }
+
+    let a = unapply(ints).map { (head, tail) in
+      Expr.number(tail.reduce(head) { (acc, curr) in opr(acc, curr) })
+    }
+
+    return a.map { b in (b, env) }
+
   })
 }
 func stringStringOperator(_ opr: @escaping (String, String) -> String, _ symbol: String) -> Expr {
