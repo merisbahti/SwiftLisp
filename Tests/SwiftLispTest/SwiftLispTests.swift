@@ -169,6 +169,20 @@ import Testing
     ),
     (
       """
+      (def filter
+        (fn (pred xs)
+        (cond
+          ((eq xs '()) '())
+          ((pred (head xs)) (cons (head xs) (filter pred (tail xs))))
+          (true (filter pred (tail xs)))
+        )
+        )
+      )
+      (filter (fn (x) (eq 2 x)) '(1 2 3 2 4 5 2) '(1))
+      """, makeEvalError("Wrong nr of args to fn, got \(3) needed \(2)")
+    ),
+    (
+      """
       (str-append "hello" "" " " "" "world")
       """, .success(.string("hello world"))
     ),

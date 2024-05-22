@@ -299,52 +299,52 @@ public let stdLib: Env = [
     return .success((head, env))
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
-    let head = exprs.first
-    let body = exprs.dropFirst().first
-    if head == nil {
+    guard case .success((let head, let tail)) = unapply(exprs) else {
       return makeEvalError("Missing first arg to fn, list of symbols")
     }
-    if body == nil {
+    guard case .success((let body, _)) = unapply(tail) else {
       return makeEvalError("Second arg to fn undefined, should be list.")
     }
-    return getSymbolsFromListExpr(head!).flatMap { symbols in
-      switch body! {
-      case Expr.list(let bodyList):
-        return Result.success(
-          (
-            Expr.fun({ (fnArgs, fnEnv) in
-              if fnArgs.capacity != symbols.capacity {
-                return makeEvalError("Wrong nr of args to fn, \(fnArgs) \(symbols)")
-              }
-              let emptyEnv: Env = [:]
-              // Evaluate all fnArgs
-              let argsEnv: Result<Env, EvalError> = zip(symbols, fnArgs).reduce(
-                .success(emptyEnv),
-                { (acc: Result<Env, EvalError>, kvs: (String, Expr)) in
-                  let kvsExprEvalResult = eval(kvs.1, fnEnv)
-                  return kvsExprEvalResult.flatMap { kvsExprEvalResult in
-                    return acc.flatMap { accEvalResult in
-                      return .success(
-                        accEvalResult.merging(
-                          [kvs.0: kvsExprEvalResult.0], uniquingKeysWith: { _, kvs in kvs }))
-                    }
-                  }
-                })
-              return argsEnv.flatMap { argsEnv in
-                let applicationEnv: Env = argsEnv.merging(
-                  fnEnv,
-                  uniquingKeysWith: { argsEnv, _ in argsEnv }
-                )
-                let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
-                return bodyApplyResult.flatMap { result in
-                  .success((result.0, fnEnv))
+    guard case .success(let symbols) = getSymbolsFromListExpr(head) else {
+      return makeEvalError("woops")
+    }
+
+    guard case .list(let bodyList) = body else {
+      return makeEvalError("Second argument to fn should be a list, got: \(body)")
+    }
+
+    return Result.success(
+      (
+        Expr.fun({ (fnArgs, fnEnv) in
+          if fnArgs.capacity != symbols.capacity {
+            return makeEvalError(
+              "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
+          }
+          let emptyEnv: Env = [:]
+          // Evaluate all fnArgs
+          let argsEnv: Result<Env, EvalError> = zip(symbols, fnArgs).reduce(
+            .success(emptyEnv),
+            { (acc: Result<Env, EvalError>, kvs: (String, Expr)) in
+              let kvsExprEvalResult = eval(kvs.1, fnEnv)
+              return kvsExprEvalResult.flatMap { kvsExprEvalResult in
+                return acc.flatMap { accEvalResult in
+                  return .success(
+                    accEvalResult.merging(
+                      [kvs.0: kvsExprEvalResult.0], uniquingKeysWith: { _, kvs in kvs }))
                 }
               }
-            }), env
-          ))
-      case let other:
-        return makeEvalError("Second argument to fn should be a list, got: \(other)")
-      }
-    }
+            })
+          return argsEnv.flatMap { argsEnv in
+            let applicationEnv: Env = argsEnv.merging(
+              fnEnv,
+              uniquingKeysWith: { argsEnv, _ in argsEnv }
+            )
+            let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
+            return bodyApplyResult.flatMap { result in
+              .success((result.0, fnEnv))
+            }
+          }
+        }), env
+      ))
   },
 ]
