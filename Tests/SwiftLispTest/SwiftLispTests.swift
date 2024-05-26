@@ -202,6 +202,35 @@ import Testing
       (str-append "hello" "" " " "" "world")
       """, .success(.string("hello world"))
     ),
+    (
+      """
+      (let 
+        (
+          (a 1)
+          (b 2)
+        )
+      )
+      """,
+      makeEvalError(
+        "Expected two args to let, one list of bindings and one expr to evaluate, found: [((a 1) (b 2))]"
+      )
+    ),
+
+    (
+      """
+      (let 
+        (
+          (a 1)
+          (b 2)
+        )
+        (+ a b)
+        (+ a b)
+      )
+      """,
+      makeEvalError(
+        "Expected two args to let, one list of bindings and one expr to evaluate, found: [((a 1) (b 2)), (+ a b), (+ a b)]"
+      )
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
