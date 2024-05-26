@@ -99,12 +99,12 @@ import Testing
     (
       """
       (def map (
-      fn (f xs) (cond
-      ((eq (head xs) null) '())
-      (true (cons
-      (f (head xs))
-      (map f (tail xs))
-      ))
+        fn (f xs) 
+        (cond
+          ((eq (head xs) null) '())
+          (true (cons (f (head xs))
+        (map f (tail xs))
+        ))
       )))
       (map (fn (x) (+ x 1)) '(1 2 3))
       """,
@@ -114,6 +114,22 @@ import Testing
           Expr.number(3),
           Expr.number(4),
         ]))
+    ),
+
+    (
+      """
+      (def map (
+        fn (f xs) 
+        (cond
+          ((eq (head xs) null) '())
+          (true (cons (f (head xs))
+        (map f (tail xs))
+        ))
+      )))
+      (map (fn (x) (+ x 1)) '())
+      """,
+      .success(
+        Expr.list([]))
     ),
     (
       "'(1 2 3)",
