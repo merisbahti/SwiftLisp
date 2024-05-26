@@ -78,9 +78,10 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
       return makeEvalError("Cannot evaluate empty list: \(tokenList)")
     }
 
-    guard case .success((.fun(let fn), _)) = eval(head, env) else {
+    let evalResult = eval(head, env)
+    guard case .success((.fun(let fn), _)) = evalResult else {
       return .failure(
-        EvalError(message: "car of list is not a function, \(head) in list \(expr)")
+        EvalError(message: "car of list is not a function, found: \(evalResult)")
       )
     }
 
