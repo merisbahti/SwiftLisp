@@ -22,7 +22,7 @@ import Testing
       .success(Expr.number(-8))
     ),
     ("(car '(1 2 3))", .success(Expr.number(1))),
-    ("(tail '(1 2 3))", .success(Expr.list([Expr.number(2), Expr.number(3)]))),
+    ("(cdr '(1 2 3))", .success(Expr.list([Expr.number(2), Expr.number(3)]))),
     (
       "(cons 1 '(2 3))",
       .success(
@@ -34,7 +34,7 @@ import Testing
       )
     ),
     (
-      "(cons 1 (tail '(1 2 3)))",
+      "(cons 1 (cdr '(1 2 3)))",
       .success(
         Expr.list([
           Expr.number(1),
@@ -103,7 +103,7 @@ import Testing
         (cond
           ((eq (car xs) null) '())
           (true (cons (f (car xs))
-        (map f (tail xs))
+        (map f (cdr xs))
         ))
       )))
       (map (fn (x) (+ x 1)) '(1 2 3))
@@ -123,7 +123,7 @@ import Testing
         (cond
           ((eq (car xs) null) '())
           (true (cons (f (car xs))
-        (map f (tail xs))
+        (map f (cdr xs))
         ))
       )))
       (map (fn (x) (+ x 1)) '())
@@ -175,8 +175,8 @@ import Testing
         (fn (pred xs)
         (cond
           ((eq xs '()) '())
-          ((pred (car xs)) (cons (car xs) (filter pred (tail xs))))
-          (true (filter pred (tail xs)))
+          ((pred (car xs)) (cons (car xs) (filter pred (cdr xs))))
+          (true (filter pred (cdr xs)))
         )
         )
       )
@@ -189,8 +189,8 @@ import Testing
         (fn (pred xs)
         (cond
           ((eq xs '()) '())
-          ((pred (car xs)) (cons (car xs) (filter pred (tail xs))))
-          (true (filter pred (tail xs)))
+          ((pred (car xs)) (cons (car xs) (filter pred (cdr xs))))
+          (true (filter pred (cdr xs)))
         )
         )
       )

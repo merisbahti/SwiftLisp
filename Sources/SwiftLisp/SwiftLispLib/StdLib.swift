@@ -149,13 +149,13 @@ public let stdLib: Env = [
       }
     }
   },
-  "tail": Expr.fun { (exprs: [Expr], env: Env) in
+  "cdr": Expr.fun { (exprs: [Expr], env: Env) in
     unapply(exprs).map { (head, _) in
       head
     }.flatMapError { _ in
       .failure(
         EvalError(
-          message: ("tail must be applied to 1 argument.")
+          message: ("cdr must be applied to 1 argument.")
         ))
     }.flatMap { firstArgExpr in
       eval(firstArgExpr, env)
@@ -168,7 +168,7 @@ public let stdLib: Env = [
           return .success((Expr.list([]), env))
         }
       case let other:
-        return makeEvalError("Can only apply tail to list, got: \(other)")
+        return makeEvalError("Can only apply cdr to list, got: \(other)")
       }
     }
   },
