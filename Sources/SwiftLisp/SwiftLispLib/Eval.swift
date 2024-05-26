@@ -80,9 +80,12 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
 
     let evalResult = eval(head, env)
     guard case .success((.fun(let fn), _)) = evalResult else {
-      return .failure(
-        EvalError(message: "car of list is not a function, found: \(evalResult)")
-      )
+      switch evalResult {
+      case .failure(let failure): return makeEvalError(failure.message)
+      case .success((let nonMatchingExpr, _)):
+        return makeEvalError(
+          "car of list is not a function, found: \(nonMatchingExpr) in list \(expr)")
+      }
     }
 
     return fn(tail, env)
@@ -100,12 +103,17 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     return .success((expr, env))
   }
 }
-public func eval(_ exprs: [Expr]) -> Result<Expr, EvalError> {
+
+public func evalWithEnv(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> {
   return unapply(exprs).flatMap { (head, tail) in
     return tail.reduce(
-      eval(head, stdLib),
+      eval(head, env),
       { res, expr in
         return res.flatMap { _, newEnv in return eval(expr, newEnv) }
       })
-  }.map { $0.0 }
+  }
+}
+
+public func eval(_ exprs: [Expr]) -> Result<Expr, EvalError> {
+  return evalWithEnv(exprs, stdLib).map { $0.0 }
 }
