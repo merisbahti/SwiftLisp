@@ -12,7 +12,7 @@ import Testing
     ("(+ 1 2)", .success(Expr.number(3))),
     ("(+ a 3)", makeEvalError("Variable not found: a")),
     ("(- 3 5)", .success(Expr.number(-2))),
-    ("(1 2 3)", makeEvalError("Head of list is not a function, 1 in list (1 2 3)")),
+    ("(1 2 3)", makeEvalError("car of list is not a function, 1 in list (1 2 3)")),
     ("(def a (+ 5 3)) (def b 5) (+ a b)", .success(Expr.number(13))),
     ("(def f (fn (a b) (+ a a b))) (f 2 5)", .success(Expr.number(9))),
     ("((fn (a b) (+ a b)) 2 5)", .success(Expr.number(7))),
@@ -21,7 +21,7 @@ import Testing
       "(def negate (fn (a) (- a a a))) (def add (fn (a b) (+ a b))) (add (negate 5) (negate 3))",
       .success(Expr.number(-8))
     ),
-    ("(head '(1 2 3))", .success(Expr.number(1))),
+    ("(car '(1 2 3))", .success(Expr.number(1))),
     ("(tail '(1 2 3))", .success(Expr.list([Expr.number(2), Expr.number(3)]))),
     (
       "(cons 1 '(2 3))",
@@ -101,8 +101,8 @@ import Testing
       (def map (
         fn (f xs) 
         (cond
-          ((eq (head xs) null) '())
-          (true (cons (f (head xs))
+          ((eq (car xs) null) '())
+          (true (cons (f (car xs))
         (map f (tail xs))
         ))
       )))
@@ -121,8 +121,8 @@ import Testing
       (def map (
         fn (f xs) 
         (cond
-          ((eq (head xs) null) '())
-          (true (cons (f (head xs))
+          ((eq (car xs) null) '())
+          (true (cons (f (car xs))
         (map f (tail xs))
         ))
       )))
@@ -175,7 +175,7 @@ import Testing
         (fn (pred xs)
         (cond
           ((eq xs '()) '())
-          ((pred (head xs)) (cons (head xs) (filter pred (tail xs))))
+          ((pred (car xs)) (cons (car xs) (filter pred (tail xs))))
           (true (filter pred (tail xs)))
         )
         )
@@ -189,7 +189,7 @@ import Testing
         (fn (pred xs)
         (cond
           ((eq xs '()) '())
-          ((pred (head xs)) (cons (head xs) (filter pred (tail xs))))
+          ((pred (car xs)) (cons (car xs) (filter pred (tail xs))))
           (true (filter pred (tail xs)))
         )
         )

@@ -126,14 +126,14 @@ public let stdLib: Env = [
     }
   },
   "null": Expr.null,
-  "head": Expr.fun { (exprs: [Expr], env: Env) in
+  "car": Expr.fun { (exprs: [Expr], env: Env) in
     unapply(exprs).map { (head, _) in
       head
     }.flatMapError { _ in
       .failure(
         EvalError(
 
-          message: ("head must be applied to 1 argument.")))
+          message: ("car must be applied to 1 argument.")))
     }.flatMap { firstArgExpr in
       eval(firstArgExpr, env)
     }.flatMap { (firstArgEvaled, _) in
@@ -145,7 +145,7 @@ public let stdLib: Env = [
           return .success((Expr.null, env))
         }
       case let other:
-        return makeEvalError("Can only apply head to list, got: \(other)")
+        return makeEvalError("Can only apply car to list, got: \(other)")
       }
     }
   },
