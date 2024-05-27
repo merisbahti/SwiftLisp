@@ -21,6 +21,27 @@ extension Expr: CustomStringConvertible {
   }
 }
 
+func resultOperation<T, E: Error>(
+  _ lhs: Result<T, E>, _ rhs: Result<T, E>, _ operation: ((T, T) -> T)
+) -> Result<T, E> {
+  lhs.flatMap { (lhsValue) -> Result<T, E> in
+    rhs.map { (rhsValue) -> T in
+      return operation(lhsValue, rhsValue)
+    }
+  }
+}
+
+func resultsArray<T, E>(_ xs: [Result<T, E>]) -> Result<[T], E> {
+  let inital: Result<[T], E> = .success([])
+  return xs.reduce(inital) { (acc, curr) in
+    switch (acc, curr) {
+    case (.success(let acc), .success(let curr)): .success(acc.appending(curr))
+    case (.failure(_), _): acc
+    case (_, .failure(_)): curr.map { _ in [] }
+    }
+  }
+}
+
 private func numberOrVariable(val: String) -> Expr {
   if let int = Int(val) {
     return .number(int)

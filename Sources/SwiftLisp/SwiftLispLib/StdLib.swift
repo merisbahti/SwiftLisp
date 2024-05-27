@@ -128,19 +128,39 @@ public let stdLib: Env = [
   "let": Expr.fun { (exprs, originalEnv) in
     let args = (exprs.first, exprs.dropFirst().first)
 
-    guard case (let first as Expr, let second as Expr) = args, exprs.count == 2 else {
+    guard case (let .list(first), .some(let expr)) = args, exprs.count == 2 else {
       return makeEvalError(
         "Expected two args to let, one list of bindings and one expr to evaluate, found: \(exprs)")
     }
 
-    // (define (subsets s)
-    //   (if (null? s)
-    //       (list nil)
-    //       (let
-    //         ((rest (subsets (cdr s))))
-    //         (append rest (map <??> rest)))))
+    func extractBinding(_ bindingMaybe: Expr, _ env: Env) -> Result<(String, Expr), EvalError> {
+      let err: Result<(String, Expr), EvalError> = makeEvalError(
+        "Expected binding but found: \(bindingMaybe)")
+      guard case .list(let listItems) = bindingMaybe else {
+        return err
+      }
+      switch (listItems.first, listItems.dropFirst().first) {
+      case (let .variable(variableName), let .some(v2)): return .success((variableName, v2))
+      default:
+        return (err)
+      }
+    }
 
-    return makeEvalError("NYI")
+    let bindingsBeforeEval: [Result<(String, Expr), EvalError>] = first.map { expr in
+      return extractBinding(expr, originalEnv)
+        .flatMap { (binding, expr) in
+          eval(expr, originalEnv).map { exprEvaled in (binding, exprEvaled.0) }
+        }
+    }
+
+    let results = resultsArray(bindingsBeforeEval)
+    guard case .success(let bindings) = resultsArray(bindingsBeforeEval) else {
+      return results.map { _ in (.null, originalEnv) }
+    }
+
+    let newEnv = originalEnv.merging(bindings, uniquingKeysWith: { (_, b) in b })
+
+    return eval(expr, newEnv).map { (expr, _) in (expr, originalEnv) }
   },
   "null": Expr.null,
   "car": Expr.fun { (exprs: [Expr], env: Env) in

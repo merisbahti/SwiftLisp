@@ -231,6 +231,32 @@ import Testing
         "Expected two args to let, one list of bindings and one expr to evaluate, found: [((a 1) (b 2)), (+ a b), (+ a b)]"
       )
     ),
+    (
+      """
+      (let 
+        (
+          (a 1)
+          (b 2)
+        )
+        (+ a b)
+      )
+      """,
+      .success(.number(3))
+    ),
+
+    (
+      """
+      (let ((a 10))
+      (let 
+        (
+          (a 1)
+          (b 2)
+        )
+        (+ a b)
+      ))
+      """,
+      .success(.number(3))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
