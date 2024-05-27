@@ -1,8 +1,9 @@
-func intIntOperator(_ opr: @escaping (Int, Int) -> Int, _ symbol: String) -> Expr {
+func intIntOperator(_ opr: @escaping (Float64, Float64) -> Float64, _ symbol: String) -> Expr {
   return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
     let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
 
-    let exprsVerified: Result<[Int], EvalError> = exprsEvaled.reduce(.success([])) { acc, curr in
+    let exprsVerified: Result<[Float64], EvalError> = exprsEvaled.reduce(.success([])) {
+      acc, curr in
       switch (acc, curr) {
       case (.failure(let evalError), _): return .failure(evalError)
       case (.success(let acc), .success((.number(let nr), _))):
@@ -329,6 +330,10 @@ public let stdLib: Env = [
         }
         return .success((Expr.null, env))
       }
+  },
+  "list": Expr.fun { (exprs: [Expr], env: Env) in
+    let exprsEvaled = resultsArray(exprs.map { expr in eval(expr, env).map { $0.0 } })
+    return exprsEvaled.map { exprs in (Expr.list(exprs), env) }
   },
   "quote": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .success((let head, let tail)) = unapply(exprs) else {

@@ -9,7 +9,7 @@ extension EvalError: Equatable {
 }
 
 public enum Expr {
-  case number(Int)
+  case number(Float64)
   case string(String)
   case list([Expr])
   case variable(String)

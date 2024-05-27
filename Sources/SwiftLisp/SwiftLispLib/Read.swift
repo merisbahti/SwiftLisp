@@ -4,7 +4,11 @@ extension Expr: CustomStringConvertible {
   public var description: String {
     switch self {
     case Expr.number(let nbr):
-      return String(nbr)
+      let str = String(nbr)
+      if str.hasSuffix(".0") {
+        return String(str.dropLast(2))
+      }
+      return str
     case Expr.variable(let string):
       return string
     case Expr.list(let exprs):
@@ -43,7 +47,7 @@ func resultsArray<T, E>(_ xs: [Result<T, E>]) -> Result<[T], E> {
 }
 
 private func numberOrVariable(val: String) -> Expr {
-  if let int = Int(val) {
+  if let int = Float64(val) {
     return .number(int)
   } else {
     return .variable(val)
