@@ -257,6 +257,27 @@ import Testing
       """,
       .success(.number(3))
     ),
+    (
+      """
+      (define () (+ a b))
+      """,
+      makeEvalError(
+        "define's first arg should be a symbol or list of symbols (at least 1 symbols), found: ()")
+    ),
+
+    (
+      """
+      (define )
+      """,
+      makeEvalError(
+        "define takes two args")
+    ),
+    (
+      """
+      (define (f a b) (+ a b))
+      (f 1 2)
+      """, .success(.number(3))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {

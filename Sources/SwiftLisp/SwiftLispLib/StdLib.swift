@@ -84,6 +84,35 @@ func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -
     }
   }
 }
+
+func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
+  if exprs.count != 2 {
+    return makeEvalError("\"def\" takes 2 arguments.")
+  }
+  return unapply(exprs).flatMap { (head, tail) in
+    switch head {
+    case Expr.variable(let variableName):
+      if env[variableName] != nil {
+        return makeEvalError("\"\(variableName)\" is already defined in the environment.")
+      } else {
+        return unapply(tail).flatMap { (head2, _) in
+          .success((variableName, head2))
+        }
+      }
+    default:
+      return makeEvalError("First arg to def must be symbol.")
+    }
+  }.flatMap { (symbol, expr) -> EvalResult in
+    eval(expr, env).flatMap { evaluatedExpr, _ in
+      .success(
+        (
+          Expr.null,
+          env.merging([symbol: evaluatedExpr]) { env, _ in env }
+        ))
+    }
+  }
+}
+
 public let stdLib: Env = [
   "+": intIntOperator({ $0 + $1 }, "+"),
   "str-append": stringStringOperator({ $0 + $1 }, "str-append"),
@@ -125,6 +154,7 @@ public let stdLib: Env = [
       return false
     }
   },
+  "else": Expr.bool(true),
   "let": Expr.fun { (exprs, originalEnv) in
     let args = (exprs.first, exprs.dropFirst().first)
 
@@ -277,33 +307,7 @@ public let stdLib: Env = [
       return makeEvalError("takes 2 arguments, an element and a list.")
     }
   },
-  "def": Expr.fun { (exprs: [Expr], env: Env) in
-    if exprs.count != 2 {
-      return makeEvalError("\"def\" takes 2 arguments.")
-    }
-    return unapply(exprs).flatMap { (head, tail) in
-      switch head {
-      case Expr.variable(let variableName):
-        if env[variableName] != nil {
-          return makeEvalError("\"\(variableName)\" is already defined in the environment.")
-        } else {
-          return unapply(tail).flatMap { (head2, _) in
-            .success((variableName, head2))
-          }
-        }
-      default:
-        return makeEvalError("First arg to def must be symbol.")
-      }
-    }.flatMap { (symbol, expr) -> EvalResult in
-      eval(expr, env).flatMap { evaluatedExpr, _ in
-        .success(
-          (
-            Expr.null,
-            env.merging([symbol: evaluatedExpr]) { env, _ in env }
-          ))
-      }
-    }
-  },
+  "def": Expr.fun { (exprs, env) in def(exprs, env) },
   "print": Expr.fun { (exprs: [Expr], env: Env) in
     return unapply(exprs)
       .flatMap { (head, tail) in
@@ -334,6 +338,70 @@ public let stdLib: Env = [
       return makeEvalError("quote takes 1 argument only.")
     }
     return .success((head, env))
+  },
+  "define": Expr.fun { (exprs, env) in
+    guard case (.some(let definee), .some(let body)) = (exprs.first, exprs.dropFirst().first),
+      exprs.count == 2
+    else {
+      return makeEvalError("define takes two args")
+    }
+    if case (.variable(let symbol)) = definee {
+      return def(exprs, env)
+    }
+
+    guard case .success(let allSymbols) = getSymbolsFromListExpr(definee), allSymbols.count > 0
+    else {
+      return makeEvalError(
+        "define's first arg should be a symbol or list of symbols (at least 1 symbols), found: \(definee)"
+      )
+    }
+
+    let fnName = allSymbols.first
+    let symbols = allSymbols.dropFirst()
+
+    guard case .list(let bodyList) = body else {
+      return makeEvalError(
+        "Second argument to define (with list of symbols as first arg) should be a list, got: \(body)"
+      )
+    }
+
+    // (define (f a b) expr)
+    // (define (f a b . x) expr)
+
+    let newFn = Expr.fun({ (fnArgs, fnEnv) in
+      if fnArgs.count != symbols.count {
+        return makeEvalError(
+          "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
+      }
+      let emptyEnv: Env = [:]
+      // Evaluate all fnArgs
+      let argsEnv: Result<Env, EvalError> = zip(symbols, fnArgs).reduce(
+        .success(emptyEnv),
+        { (acc: Result<Env, EvalError>, kvs: (String, Expr)) in
+          let kvsExprEvalResult = eval(kvs.1, fnEnv)
+          return kvsExprEvalResult.flatMap { kvsExprEvalResult in
+            return acc.flatMap { accEvalResult in
+              return .success(
+                accEvalResult.merging(
+                  [kvs.0: kvsExprEvalResult.0], uniquingKeysWith: { _, kvs in kvs }))
+            }
+          }
+        })
+      return argsEnv.flatMap { argsEnv in
+        let applicationEnv: Env = argsEnv.merging(
+          fnEnv,
+          uniquingKeysWith: { argsEnv, _ in argsEnv }
+        )
+        let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
+        return bodyApplyResult.flatMap { result in
+          .success((result.0, fnEnv))
+        }
+      }
+    })
+    return Result.success(
+      (
+        newFn, env.merging([(fnName!, newFn)], uniquingKeysWith: { (_, b) in b })
+      ))
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .success((let head, let tail)) = unapply(exprs) else {
