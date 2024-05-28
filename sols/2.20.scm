@@ -9,9 +9,9 @@
       (parityFn (cond
                  ((odd? parity) odd?)
                  (else even?))))
-    (filter (fn (x) (parityFn x)) xs)))
+    (cons parity (filter (fn (x) (parityFn x)) xs))))
 (print
-  (eq (same-parity 1 2 3 4 5 6 7) '(3 5 7)))
+  (eq (same-parity 1 2 3 4 5 6 7) '(1 3 5 7)))
 
 (print
-  (eq (same-parity 2 3 4 5 6 7) '(4 6)))
+  (eq (same-parity 2 3 4 5 6 7) '(2 4 6)))

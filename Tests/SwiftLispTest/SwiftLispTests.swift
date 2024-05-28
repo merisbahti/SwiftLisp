@@ -320,9 +320,9 @@ import Testing
             (parityFn (cond
                        ((odd? parity) odd?)
                        (else even?))))
-          (filter (fn (x) (parityFn x)) xs)))
+          (cons parity (filter (fn (x) (parityFn x)) xs))))
       (same-parity 1 2 3 4 5 6 7)
-      """, .success(.list([.number(3), .number(5), .number(7)]))
+      """, .success(.list([.number(1), .number(3), .number(5), .number(7)]))
     ),
     (
       """
@@ -341,9 +341,9 @@ import Testing
             (parityFn (cond
                        ((odd? parity) odd?)
                        (else even?))))
-          (filter (fn (x) (parityFn x)) xs)))
+          (cons parity (filter (fn (x) (parityFn x)) xs))))
       (same-parity 2 3 4 5 6 7)
-      """, .success(.list([.number(4), .number(6)]))
+      """, .success(.list([.number(2), .number(4), .number(6)]))
     ),
   ]
 )
