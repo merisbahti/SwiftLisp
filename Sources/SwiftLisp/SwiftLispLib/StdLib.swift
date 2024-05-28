@@ -116,6 +116,7 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
 
 public let stdLib: Env = [
   "+": intIntOperator({ $0 + $1 }, "+"),
+  "%": intIntOperator({ $0.truncatingRemainder(dividingBy: $1) }, "%"),
   "str-append": stringStringOperator({ $0 + $1 }, "str-append"),
   "-": intIntOperator({ $0 - $1 }, "-"),
   "*": intIntOperator({ $0 * $1 }, "*"),
@@ -362,7 +363,10 @@ public let stdLib: Env = [
     }
 
     let fnName = allSymbols.first
-    let symbols = allSymbols.dropFirst()
+
+    let isVariadic = allSymbols.dropLast().last == "."
+    let variadicSymbol: String? = isVariadic ? allSymbols.last : .none
+    let symbols = isVariadic ? allSymbols.dropFirst().dropLast().dropLast() : allSymbols.dropFirst()
 
     guard case .list(let bodyList) = body else {
       return makeEvalError(
@@ -370,38 +374,31 @@ public let stdLib: Env = [
       )
     }
 
-    // (define (f a b) expr)
-    // (define (f a b . x) expr)
-
     let newFn = Expr.fun({ (fnArgs, fnEnv) in
-      if fnArgs.count != symbols.count {
+      if isVariadic ? fnArgs.count < symbols.count : fnArgs.count != symbols.count {
         return makeEvalError(
           "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
       }
       let emptyEnv: Env = [:]
-      // Evaluate all fnArgs
-      let argsEnv: Result<Env, EvalError> = zip(symbols, fnArgs).reduce(
-        .success(emptyEnv),
-        { (acc: Result<Env, EvalError>, kvs: (String, Expr)) in
-          let kvsExprEvalResult = eval(kvs.1, fnEnv)
-          return kvsExprEvalResult.flatMap { kvsExprEvalResult in
-            return acc.flatMap { accEvalResult in
-              return .success(
-                accEvalResult.merging(
-                  [kvs.0: kvsExprEvalResult.0], uniquingKeysWith: { _, kvs in kvs }))
-            }
-          }
-        })
-      return argsEnv.flatMap { argsEnv in
-        let applicationEnv: Env = argsEnv.merging(
-          fnEnv,
-          uniquingKeysWith: { argsEnv, _ in argsEnv }
-        )
-        let bodyApplyResult = eval(Expr.list(bodyList), applicationEnv)
-        return bodyApplyResult.flatMap { result in
-          .success((result.0, fnEnv))
-        }
+
+      let argsEvaledResult = resultsArray(fnArgs.map { arg in eval(arg, fnEnv).map { $0.0 } })
+
+      guard case .success(let argsEvaled) = argsEvaledResult else {
+        return argsEvaledResult.map { _ in (.null, env) }
       }
+
+      let formalArgsEnv: Env = Dictionary(uniqueKeysWithValues: zip(symbols, argsEvaled))
+      let variadicArgEnv: Env =
+        (variadicSymbol.map { vKey in
+          [vKey: .list(Array(argsEvaled.dropFirst(symbols.count)))]
+        }) ?? [:]
+
+      let argsEnv =
+        fnEnv
+        .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
+        .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
+
+      return eval(Expr.list(bodyList), argsEnv).map { ($0.0, fnEnv) }
     })
     return Result.success(
       (
@@ -430,6 +427,7 @@ public let stdLib: Env = [
             return makeEvalError(
               "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
           }
+
           let emptyEnv: Env = [:]
           // Evaluate all fnArgs
           let argsEnv: Result<Env, EvalError> = zip(symbols, fnArgs).reduce(

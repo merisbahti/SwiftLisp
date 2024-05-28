@@ -278,6 +278,73 @@ import Testing
       (f 1 2)
       """, .success(.number(3))
     ),
+    (
+      """
+      (define (odd? x) (eq (% x 2) 1))
+      (odd? 3)
+      """, .success(.bool(true))
+    ),
+
+    (
+      """
+      (define (odd? x) (eq (% x 2) 1))
+      (odd? 6)
+      """, .success(.bool(false))
+    ),
+    (
+      """
+      (define (even? x) (eq (% x 2) 0))
+      (even? 3)
+      """, .success(.bool(false))
+    ),
+    (
+      """
+      (define (even? x) (eq (% x 2) 0))
+      (even? 6)
+      """, .success(.bool(true))
+    ),
+    (
+      """
+      (def filter
+        (fn (pred xs)
+          (cond
+            ((eq xs '()) '())
+            ((pred (car xs)) (cons (car xs) (filter pred (cdr xs))))
+            (true (filter pred (cdr xs))))))
+      (define (odd? x) (eq (% x 2) 1))
+      (define (even? x) (eq (% x 2) 0))
+      (define
+        (same-parity parity . xs)
+        (let
+          (
+            (parityFn (cond
+                       ((odd? parity) odd?)
+                       (else even?))))
+          (filter (fn (x) (parityFn x)) xs)))
+      (same-parity 1 2 3 4 5 6 7)
+      """, .success(.list([.number(3), .number(5), .number(7)]))
+    ),
+    (
+      """
+      (def filter
+        (fn (pred xs)
+          (cond
+            ((eq xs '()) '())
+            ((pred (car xs)) (cons (car xs) (filter pred (cdr xs))))
+            (true (filter pred (cdr xs))))))
+      (define (odd? x) (eq (% x 2) 1))
+      (define (even? x) (eq (% x 2) 0))
+      (define
+        (same-parity parity . xs)
+        (let
+          (
+            (parityFn (cond
+                       ((odd? parity) odd?)
+                       (else even?))))
+          (filter (fn (x) (parityFn x)) xs)))
+      (same-parity 2 3 4 5 6 7)
+      """, .success(.list([.number(4), .number(6)]))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {

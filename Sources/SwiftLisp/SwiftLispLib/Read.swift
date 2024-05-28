@@ -62,7 +62,7 @@ private func parseExpr() -> GenericParser<String, (), Expr> {
   let cparen = StringParser.character(")")
   let quote = StringParser.character("'")
 
-  let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789."
+  let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789.%"
   let atom = numberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
 
   let string =
