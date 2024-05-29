@@ -17,6 +17,8 @@
     (else
       (cons (proc (car items))
         (map proc (cdr items))))))
+(define (newline) (print ""))
+(define display print)
 
 (def filter
   (fn (pred xs)
