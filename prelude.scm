@@ -28,3 +28,10 @@
       (true (filter pred (cdr xs))))))
 
 (define = eq)
+
+(define (assert a b)
+  (let ((aEvaled (eval a))
+        (bEvaled (eval b)))
+    (cond
+      ((= aEvaled bEvaled) null)
+      (else (print "assertion failed, found: " aEvaled ", but expected: " bEvaled " (" a " != " b ")")))))

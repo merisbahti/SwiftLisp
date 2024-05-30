@@ -244,53 +244,45 @@ public let stdLib: Env = [
   "true": Expr.bool(true),
   "false": Expr.bool(false),
   "cond": Expr.fun { (exprs: [Expr], env: Env) in
-    return
-      (exprs.reduce(
-        .success(Expr.null),
-        {
-          (acc: Result<Expr, EvalError>, condExpr: Expr) in
-          return acc.flatMap { (accExpr: Expr) in
-            switch accExpr {
-            case Expr.null:
-              switch condExpr {
-              case Expr.list(let condExprList):
-                if let predExpr = condExprList.first, let thenExpr = condExprList.dropFirst().first
-                {
-                  return eval(predExpr, env).flatMap { (evaledPredExpr, _) in
-                    switch evaledPredExpr {
-                    case Expr.bool(true):
-                      return eval(thenExpr, env).flatMap {
-                        let result = Result<Expr, EvalError>.success($0.0)
-                        return result
-                      }
-                    default:
-                      return .success(Expr.null)
-                    }
-                  }
-                } else {
-                  return .failure(
-                    EvalError(
-                      message:
-                        "Each argument to cond should be pair of (predExpr thenExpr), got: \(condExpr)"
-                    )
-                  )
-                }
-              default:
-                return .failure(
-                  EvalError(
-                    message:
-                      "Each argument to cond should be pair of (predExpr thenExpr), got: \(condExpr)"
-                  )
-                )
-              }
-            // continue
-            case let value:
-              return .success(value)
-            }
-          }
-        })).flatMap {
-        return .success(($0, env))
+    let maybeResult = exprs.reduce(
+      Optional.none
+    ) {
+      (acc: Result<Expr, EvalError>?, condExpr: Expr) in
+      if case .some(let cons) = acc {
+        return acc
       }
+
+      switch condExpr {
+      case Expr.list(let condExprList):
+        guard let predExpr = condExprList.first, let thenExpr = condExprList.dropFirst().first
+        else {
+          return .some(
+            makeEvalError(
+              "Each argument to cond should be pair of (predExpr thenExpr), got: \(condExpr)"
+            )
+          )
+        }
+
+        switch eval(predExpr, env).map { $0.0 } {
+        case .success(Expr.bool(true)):
+          return .some(
+            eval(thenExpr, env).flatMap {
+              let result = Result<Expr, EvalError>.success($0.0)
+              return result
+            })
+        default:
+          return .none
+        }
+
+      default:
+        return .some(
+          makeEvalError(
+            "Each argument to cond should be pair of (predExpr thenExpr), got: \(condExpr)"
+          )
+        )
+      }
+    }
+    return (maybeResult ?? .success(.null)).map { ($0, env) }
 
   },
   "cons": Expr.fun { (exprs: [Expr], env: Env) in
@@ -309,8 +301,36 @@ public let stdLib: Env = [
       return makeEvalError("takes 2 arguments, an element and a list.")
     }
   },
+  "eval": Expr.fun { (exprs, env) in
+    if exprs.count != 1 {
+      return makeEvalError("Expr takes one arg, found: \(exprs)")
+    }
+    guard let head = exprs.first else {
+      return makeEvalError("Expr takes one arg, found: \(exprs)")
+    }
+
+    let res =
+      eval(head, env).flatMap { eval($0.0, env) }
+    return res
+
+  },
   "def": Expr.fun { (exprs, env) in def(exprs, env) },
   "print": Expr.fun { (exprs: [Expr], env: Env) in
+
+    let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
+    return resultsArray(exprsEvaled).flatMap { exprs in
+      let formatted = exprs.reduce("") { acc, curr in
+        switch curr.0 {
+        case .string(let a):
+          return "\(acc)\(a)"
+        default:
+          return "\(acc)\(curr.0)"
+        }
+      }
+      print(formatted)
+      return .success((Expr.null, env))
+    }
+
     return unapply(exprs)
       .flatMap { (head, tail) in
         switch tail.count {

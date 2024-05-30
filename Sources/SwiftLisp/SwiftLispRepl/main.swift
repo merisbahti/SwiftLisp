@@ -32,7 +32,7 @@ if arguments.count == 2 {
   let result: Result<Expr, EvalError> = exprs.flatMap { evalWithEnv($0, preludeEnv) }.map { $0.0 }
   switch result {
   case .failure(let e):
-    print(e)
+    print(e.message)
     exit(1)
   case .success(let e):
     print(e)
