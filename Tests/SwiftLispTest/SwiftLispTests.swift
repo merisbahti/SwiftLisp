@@ -345,6 +345,28 @@ import Testing
       (same-parity 2 3 4 5 6 7)
       """, .success(.list([.number(2), .number(4), .number(6)]))
     ),
+    (
+      """
+
+        (list
+          (number? false)
+          (number? '(1 2 3))
+          (pair? '(1 2 3))
+          (pair? '())
+          (number? 1)
+          (number? (+ 1 2))
+          (bool? false)
+          (bool? true))
+              
+      """,
+      .success(
+        .list(
+          [
+            .bool(false), .bool(false), .bool(true),
+            .bool(true), .bool(true), .bool(true),
+            .bool(true), .bool(true),
+          ]))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {

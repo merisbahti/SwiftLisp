@@ -194,7 +194,46 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
     (newFn, env.merging([(macroName, newFn)], uniquingKeysWith: { (_, b) in b })))
 }
 
+func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> Expr {
+  return Expr.fun { (exprs, env) in
+    guard case .success((let head, let x)) = unapply(exprs), x.count == 0 else {
+      return makeEvalError("\(name) takes two args, found: \(exprs)")
+    }
+    return eval(head, env).map {
+      (.bool(fn($0.0)), env)
+    }
+  }
+}
+
 public let stdLib: Env = [
+  "pair?":
+    unaryMatcherFun("pair?") { x in
+      switch x {
+      case .list(_): return true
+      default: return false
+      }
+    },
+  "number?":
+    unaryMatcherFun("number?") { x in
+      switch x {
+      case .number(_): return true
+      default: return false
+      }
+    },
+  "string?":
+    unaryMatcherFun("string?") { x in
+      switch x {
+      case .string(_): return true
+      default: return false
+      }
+    },
+  "bool?":
+    unaryMatcherFun("bool?") { x in
+      switch x {
+      case .bool(_): return true
+      default: return false
+      }
+    },
   "defMacro": .fun(defineMacro),
   "+": intIntOperator({ $0 + $1 }, "+"),
   "%": intIntOperator({ $0.truncatingRemainder(dividingBy: $1) }, "%"),
