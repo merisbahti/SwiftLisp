@@ -161,7 +161,7 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
   let isVariadic = allSymbols.dropLast().last == "."
   let variadicSymbol: String? = isVariadic ? allSymbols.last : .none
 
-  let macroName = allSymbols.first
+  let macroName = allSymbols.first!
   let symbols = isVariadic ? allSymbols.dropFirst().dropLast().dropLast() : allSymbols.dropFirst()
 
   guard case .list(let bodyList) = body else {
@@ -173,7 +173,7 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
   let newFn = Expr.fun({ (fnArgs, fnEnv) in
     if isVariadic ? fnArgs.count < symbols.count : fnArgs.count != symbols.count {
       return makeEvalError(
-        "Wrong nr of args to macro fn, got \(fnArgs.count) needed \(symbols.count)")
+        "Wrong nr of args to \(macroName), got \(fnArgs.count) needed \(symbols.count)")
     }
 
     let formalArgsEnv: Env = Dictionary(uniqueKeysWithValues: zip(symbols, fnArgs))
@@ -191,7 +191,7 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
   })
 
   return Result.success(
-    (newFn, env.merging([(macroName!, newFn)], uniquingKeysWith: { (_, b) in b })))
+    (newFn, env.merging([(macroName, newFn)], uniquingKeysWith: { (_, b) in b })))
 }
 
 public let stdLib: Env = [
