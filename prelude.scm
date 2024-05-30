@@ -4,12 +4,12 @@
       (x false)
       (true true))))
 
+(define nil '())
 (def null?
   (fn (x)
     (cond
-      ((eq x '()) true)
+      ((eq x nil) true)
       (true false))))
-(define nil '())
 
 (define (map proc items)
   (cond
@@ -33,5 +33,7 @@
   (let ((aEvaled (eval a))
         (bEvaled (eval b)))
     (cond
-      ((= aEvaled bEvaled) null)
-      (else (print "assertion failed, found: " aEvaled ", but expected: " bEvaled " (" a " != " b ")")))))
+      ((= aEvaled bEvaled)
+        null)
+      (else
+        (print "assertion failed, found: " aEvaled ", but expected: " bEvaled " (" a " != " b ")")))))

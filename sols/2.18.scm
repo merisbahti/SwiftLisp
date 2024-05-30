@@ -9,4 +9,6 @@
       ((null? x) acc)
       (true (reverse-iter (cdr x) (cons (car x) acc))))))
 
-(reverse '(1 4 9 16 25))
+(assert
+  '(reverse '(1 4 9 16 25))
+  '(list 25 16 9 4 1))

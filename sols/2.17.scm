@@ -4,4 +4,6 @@
       ((not (null? (cdr xs))) (last-pair (cdr xs)))
       (true xs))))
 
-(last-pair '(23 72 149 34))
+(assert
+  '(last-pair '(23 72 149 34))
+  '(list 34))
