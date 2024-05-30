@@ -263,7 +263,7 @@ public let stdLib: Env = [
           )
         }
 
-        switch eval(predExpr, env).map { $0.0 } {
+        switch eval(predExpr, env).map({ $0.0 }) {
         case .success(Expr.bool(true)):
           return .some(
             eval(thenExpr, env).flatMap {
@@ -286,20 +286,20 @@ public let stdLib: Env = [
 
   },
   "cons": Expr.fun { (exprs: [Expr], env: Env) in
-    if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
-      return eval(firstArg, env).flatMap { firstRes in
-        return eval(secondArg, env).flatMap { secondRes in
-          switch secondRes.0 {
-          case .list(let list):
-            return .success((Expr.list([firstRes.0] + list), env))
-          default:
-            return makeEvalError("Second arg to cons must be list, got \(firstArg)")
-          }
-        }
-      }
-    } else {
+    guard let firstArg = exprs.first, let secondArg = exprs.dropFirst().first else {
       return makeEvalError("takes 2 arguments, an element and a list.")
     }
+    return eval(firstArg, env).flatMap { firstRes in
+      return eval(secondArg, env).flatMap { secondRes in
+        switch secondRes.0 {
+        case .list(let list):
+          return .success((Expr.list([firstRes.0] + list), env))
+        default:
+          return makeEvalError("Second arg to cons must be list, got \(firstArg)")
+        }
+      }
+    }
+
   },
   "eval": Expr.fun { (exprs, env) in
     if exprs.count != 1 {
@@ -316,7 +316,6 @@ public let stdLib: Env = [
   },
   "def": Expr.fun { (exprs, env) in def(exprs, env) },
   "print": Expr.fun { (exprs: [Expr], env: Env) in
-
     let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
     return resultsArray(exprsEvaled).flatMap { exprs in
       let formatted = exprs.reduce("") { acc, curr in
@@ -330,27 +329,6 @@ public let stdLib: Env = [
       print(formatted)
       return .success((Expr.null, env))
     }
-
-    return unapply(exprs)
-      .flatMap { (head, tail) in
-        switch tail.count {
-        case 0:
-          return .success(head)
-        default: return makeEvalError("print takes only one argument.")
-        }
-      }.flatMap {
-        eval($0, env)
-      }.flatMap {
-        .success($0.0)
-      }.flatMap { value in
-        switch value {
-        case .string(let a):
-          print(a)
-        default:
-          print(value)
-        }
-        return .success((Expr.null, env))
-      }
   },
   "list": Expr.fun { (exprs: [Expr], env: Env) in
     let exprsEvaled = resultsArray(exprs.map { expr in eval(expr, env).map { $0.0 } })
