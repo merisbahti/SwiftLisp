@@ -1,11 +1,12 @@
+(define (square x) (* x x))
 (define (square-list1 items)
   (cond
     ((null? items) '())
     (else
-      (cons (* (car items) (car items)) (square-list1 (cdr items))))))
+      (cons (square (car items)) (square-list1 (cdr items))))))
 
 (define (square-list2 items)
-  (map (fn (x) (* x x)) items))
+  (map square items))
 
 (assert
   '(square-list1 (list 1 2 3 4))
