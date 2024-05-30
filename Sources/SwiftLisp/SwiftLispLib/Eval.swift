@@ -109,7 +109,7 @@ public func evalWithEnv(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), Eval
     return tail.reduce(
       eval(head, env),
       { res, expr in
-        return res.flatMap { _, newEnv in return eval(expr, newEnv) }
+        return res.flatMap { _, newEnv in eval(expr, newEnv) }
       })
   }
 }

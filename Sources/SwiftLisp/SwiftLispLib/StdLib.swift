@@ -142,9 +142,8 @@ func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr
       .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
       .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
 
-    return body.reduce(.success((Expr.null, env))) { (acc, curr) in
-      acc.flatMap { _ in eval(curr, argsEnv) }
-    }
+    return evalWithEnv(body, argsEnv).map { ($0.0, env) }
+
   })
   return Result.success(newFn)
 }
@@ -427,7 +426,7 @@ public let stdLib: Env = [
   },
   "define": Expr.fun { (exprs, env) in
     guard case (.some(let definee), let body) = (exprs.first, exprs.dropFirst()),
-      exprs.count == 2
+      exprs.count > 1
     else {
       return makeEvalError("define takes two args")
     }
