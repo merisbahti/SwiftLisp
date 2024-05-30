@@ -1,5 +1,34 @@
 import SwiftParsec
 
+func pairToString(_ pair: (Expr, Expr), _ showPairs: Bool = true) -> String {
+  let (car, cdr) = pair
+  let cdrIsPair = {
+    switch cdr {
+    case .pair(_): true
+    default: false
+    }
+  }()
+  let separator = cdr == .null ? "" : cdrIsPair ? " " : " . "
+  let beginning = showPairs ? "(" : ""
+  let end = !cdrIsPair ? ")" : ""
+
+  let showPairsNext = {
+    switch cdr {
+    case .pair(_): false
+    default: true
+    }
+  }()
+  let cdrString = {
+    switch cdr {
+    case .pair(let pair):
+      pairToString(pair, showPairsNext)
+    case .null: ""
+    default: "\(cdr)"
+    }
+  }()
+  return "\(beginning)\(car)\(separator)\(cdrString)\(end)"
+}
+
 extension Expr: CustomStringConvertible {
   public var description: String {
     switch self {
@@ -9,6 +38,8 @@ extension Expr: CustomStringConvertible {
         return String(str.dropLast(2))
       }
       return str
+    case .pair(let pair):
+      return pairToString(pair)
     case Expr.variable(let string):
       return string
     case Expr.list(let exprs):

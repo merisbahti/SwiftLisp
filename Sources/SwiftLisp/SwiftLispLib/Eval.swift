@@ -12,6 +12,7 @@ public enum Expr {
   case number(Float64)
   case string(String)
   case list([Expr])
+  indirect case pair((Expr, Expr))
   case variable(String)
   case fun(([Expr], Env) -> EvalResult)
   case bool(Bool)

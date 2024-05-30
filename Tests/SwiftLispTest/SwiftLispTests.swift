@@ -377,3 +377,21 @@ func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
   let result: Result<Expr, EvalError> = exprs.flatMap { eval($0) }
   #expect(result == expectedResult)
 }
+
+@Test(
+  "to string",
+  arguments: [
+    (Expr.pair((.number(0), .number(0))), "(0 . 0)"),
+    (
+      .pair((.pair((.pair((.pair((.null, .number(4))), .number(3))), .number(2))), .number(1))),
+      "((((null . 4) . 3) . 2) . 1)"
+    ),
+    (Expr.pair((.number(0), Expr.pair((.number(1), Expr.pair((.number(1), .null)))))), "(0 1 1)"),
+    (Expr.pair((.number(0), Expr.pair((.number(1), .number(0))))), "(0 1 . 0)"),
+    (Expr.pair((.number(0), Expr.pair((.number(1), .null)))), "(0 1)"),
+  ]
+)
+func someTest(_ tuple: (Expr, String)) {
+  let (expr, expectedResult) = tuple
+  #expect("\(expr)" == expectedResult)
+}
