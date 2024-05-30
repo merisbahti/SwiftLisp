@@ -37,3 +37,9 @@
         null)
       (else
         (print "assertion failed, found: " aEvaled ", but expected: " bEvaled " (" a " != " b ")")))))
+
+(defMacro
+  (if pred consequent alternate)
+  (cond
+    ((eval pred) (eval consequent))
+    (else (eval alternate))))
