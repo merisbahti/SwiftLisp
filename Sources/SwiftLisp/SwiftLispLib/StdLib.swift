@@ -114,16 +114,10 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
   }
 }
 
-func defineFn(_ allSymbols: [String], _ body: Expr, _ env: Env) -> Result<Expr, EvalError> {
+func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr, EvalError> {
   let isVariadic = allSymbols.dropLast().last == "."
   let variadicSymbol: String? = isVariadic ? allSymbols.last : .none
   let symbols = isVariadic ? allSymbols.dropLast().dropLast() : allSymbols
-
-  guard case .list(let bodyList) = body else {
-    return makeEvalError(
-      "Second argument to function definition should be a list, got: \(body)"
-    )
-  }
 
   let newFn = Expr.fun({ (fnArgs, fnEnv) in
     if isVariadic ? fnArgs.count < symbols.count : fnArgs.count != symbols.count {
@@ -148,7 +142,9 @@ func defineFn(_ allSymbols: [String], _ body: Expr, _ env: Env) -> Result<Expr, 
       .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
       .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
 
-    return eval(Expr.list(bodyList), argsEnv).map { ($0.0, fnEnv) }
+    return body.reduce(.success((Expr.null, env))) { (acc, curr) in
+      acc.flatMap { _ in eval(curr, argsEnv) }
+    }
   })
   return Result.success(newFn)
 }
@@ -430,7 +426,7 @@ public let stdLib: Env = [
     return .success((head, env))
   },
   "define": Expr.fun { (exprs, env) in
-    guard case (.some(let definee), .some(let body)) = (exprs.first, exprs.dropFirst().first),
+    guard case (.some(let definee), let body) = (exprs.first, exprs.dropFirst()),
       exprs.count == 2
     else {
       return makeEvalError("define takes two args")
@@ -446,7 +442,7 @@ public let stdLib: Env = [
     }
 
     let fnName = allSymbols.first!
-    let fnDef = defineFn(Array(allSymbols.dropFirst()), body, env)
+    let fnDef = defineFn(Array(allSymbols.dropFirst()), Array(body), env)
     guard case let .success(newFn) = fnDef else {
       return fnDef.map({ ($0, env) })
     }
@@ -457,21 +453,13 @@ public let stdLib: Env = [
       ))
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
-    guard case .success((let head, let tail)) = unapply(exprs) else {
+    guard case .success((let head, let body)) = unapply(exprs) else {
       return makeEvalError("Missing first arg to fn, list of symbols")
-    }
-    guard case .success((let body, _)) = unapply(tail) else {
-      return makeEvalError("Second arg to fn undefined, should be list.")
     }
     guard case .success(let symbols) = getSymbolsFromListExpr(head) else {
       return makeEvalError("woops")
     }
 
-    guard case .list(let bodyList) = body else {
-      return makeEvalError("Second argument to fn should be a list, got: \(body)")
-    }
-
     return defineFn(symbols, body, env).map { ($0, env) }
-
   },
 ]
