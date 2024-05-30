@@ -1,8 +1,4 @@
 (define (for-each f xs)
-  (let
-    ((throwaway (map f xs)))
-    true))
-(for-each
-  (fn (x)
-    (display x))
-  (list 57 321 88))
+  (map f xs)
+  true)
+(for-each display (list 57 321 88))
