@@ -5,5 +5,5 @@
       (true xs))))
 
 (assert
-  '(last-pair '(23 72 149 34))
-  '(list 34))
+  (last-pair '(23 72 149 34))
+  (list 34))

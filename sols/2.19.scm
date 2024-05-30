@@ -15,4 +15,4 @@
              (first-denomination coin-values))
           coin-values)))))
 
-(assert 292 '(cc 100 us-coins))
+(assert 292 (cc 100 us-coins))

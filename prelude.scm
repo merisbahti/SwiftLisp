@@ -29,7 +29,7 @@
 
 (define = eq)
 
-(define (assert a b)
+(defMacro (assert a b)
   (let ((aEvaled (eval a))
         (bEvaled (eval b)))
     (cond

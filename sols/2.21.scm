@@ -9,8 +9,8 @@
   (map square items))
 
 (assert
-  '(square-list1 (list 1 2 3 4))
-  '(list 1 4 9 16))
+  (square-list1 (list 1 2 3 4))
+  (list 1 4 9 16))
 (assert
-  '(square-list2 (list 1 2 3 4))
-  '(list 1 4 9 16))
+  (square-list2 (list 1 2 3 4))
+  (list 1 4 9 16))

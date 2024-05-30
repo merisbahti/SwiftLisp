@@ -153,7 +153,54 @@ func defineFn(_ allSymbols: [String], _ body: Expr, _ env: Env) -> Result<Expr, 
   return Result.success(newFn)
 }
 
+func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> {
+  guard case (.some(let definee), .some(let body)) = (exprs.first, exprs.dropFirst().first),
+    exprs.count == 2
+  else {
+    return makeEvalError("macros takes two args")
+  }
+  guard case .success(let allSymbols) = getSymbolsFromListExpr(definee), allSymbols.count > 0 else {
+    return makeEvalError("Expected list symbols as first arg, but found: \(definee) ")
+  }
+
+  let isVariadic = allSymbols.dropLast().last == "."
+  let variadicSymbol: String? = isVariadic ? allSymbols.last : .none
+
+  let macroName = allSymbols.first
+  let symbols = isVariadic ? allSymbols.dropFirst().dropLast().dropLast() : allSymbols.dropFirst()
+
+  guard case .list(let bodyList) = body else {
+    return makeEvalError(
+      "Second argument to macro definition should be a list, got: \(body)"
+    )
+  }
+
+  let newFn = Expr.fun({ (fnArgs, fnEnv) in
+    if isVariadic ? fnArgs.count < symbols.count : fnArgs.count != symbols.count {
+      return makeEvalError(
+        "Wrong nr of args to macro fn, got \(fnArgs.count) needed \(symbols.count)")
+    }
+
+    let formalArgsEnv: Env = Dictionary(uniqueKeysWithValues: zip(symbols, fnArgs))
+    let variadicArgEnv: Env =
+      (variadicSymbol.map { vKey in
+        [vKey: .list(Array(fnArgs.dropFirst(symbols.count)))]
+      }) ?? [:]
+
+    let argsEnv =
+      fnEnv
+      .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
+      .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
+
+    return eval(Expr.list(bodyList), argsEnv).map { ($0.0, fnEnv) }
+  })
+
+  return Result.success(
+    (newFn, env.merging([(macroName!, newFn)], uniquingKeysWith: { (_, b) in b })))
+}
+
 public let stdLib: Env = [
+  "defMacro": .fun(defineMacro),
   "+": intIntOperator({ $0 + $1 }, "+"),
   "%": intIntOperator({ $0.truncatingRemainder(dividingBy: $1) }, "%"),
   "str-append": stringStringOperator({ $0 + $1 }, "str-append"),
