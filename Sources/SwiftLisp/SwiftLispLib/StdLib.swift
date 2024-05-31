@@ -400,7 +400,7 @@ public let stdLib: Env = [
     return res
 
   },
-  "def": Expr.fun { (exprs, env) in def(exprs, env) },
+  "def": Expr.fun(def),
   "print": Expr.fun { (exprs: [Expr], env: Env) in
     let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
     return resultsArray(exprsEvaled).flatMap { exprs in
