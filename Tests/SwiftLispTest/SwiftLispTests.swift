@@ -12,7 +12,7 @@ import Testing
     ("(+ 1 2)", .success(Expr.number(3))),
     ("(+ a 3)", makeEvalError("Variable not found: a")),
     ("(- 3 5)", .success(Expr.number(-2))),
-    ("(1 2 3)", makeEvalError("car of list is not a function, found: 1 in list (1 2 3)")),
+    ("(1 2 3)", makeEvalError("car of pair is not a function, found: 1 in pair (1 2 3)")),
     ("(def a (+ 5 3)) (def b 5) (+ a b)", .success(Expr.number(13))),
     ("(def f (fn (a b) (+ a a b))) (f 2 5)", .success(Expr.number(9))),
     ("((fn (a b) (+ a b)) 2 5)", .success(Expr.number(7))),
