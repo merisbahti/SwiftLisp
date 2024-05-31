@@ -11,7 +11,6 @@ extension EvalError: Equatable {
 public enum Expr {
   case number(Float64)
   case string(String)
-  case list([Expr])
   indirect case pair((Expr, Expr))
   case variable(String)
   case fun(([Expr], Env) -> EvalResult)
@@ -24,8 +23,8 @@ extension Expr: Equatable {
     switch (lhs, rhs) {
     case (.number(let nr1), .number(let nr2)):
       return nr1 == nr2
-    case (.list(let list1), .list(let list2)):
-      return list1 == list2
+    case (.pair((let car, let cdr)), .pair((let car2, let cdr2))):
+      return car == car2 && cdr == cdr2
     case (.bool(let bool1), .bool(let bool2)):
       return bool1 == bool2
     case (.string(let string1), .string(let string2)):
@@ -47,17 +46,9 @@ public func makeEvalError<A>(_ msg: String) -> Result<A, EvalError> {
 
 let getSymbolsFromListExpr: (Expr) -> Result<[String], EvalError> = { exprs in
   switch exprs {
-  case .list(let list):
-    return list.reduce(.success([])) { acc, expr in
-      return acc.flatMap { resultAcc in
-        switch expr {
-        case .variable(let str):
-          return .success(resultAcc + [str])
-        default:
-          return .failure(EvalError(message: "All members in expr must be symbol."))
-        }
-      }
-    }
+  case .pair((.variable(let a), .null)): return .success([a])
+  case .pair((.variable(let a), let expr)):
+    return getSymbolsFromListExpr(expr).map { $0.prepending(a) }
   case let other:
     return .failure(EvalError(message: "Expected list, got: \(other)"))
   }
@@ -72,24 +63,26 @@ func unapply<T>(_ list: [T]) -> Result<(T, [T]), EvalError> {
   }
 }
 
+func collectPairs(_ expr: Expr, _ acc: [Expr] = []) -> Result<[Expr], EvalError> {
+  switch expr {
+  case .pair((let car, .null)): return .success(acc.appending(car))
+  case .pair((let car, let cdr)): return collectPairs(cdr, acc.appending(car))
+  case .null: return .success([])
+  case let x: return makeEvalError("Expected pair, found: \(x)'")
+  }
+}
+
 public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
-  case .list(let tokenList):
-    guard case .success((let head, let tail)) = unapply(tokenList) else {
-      return makeEvalError("Cannot evaluate empty list: \(tokenList)")
+  case .pair((let car, let cdr)):
+    guard case .success((.fun(let carEvaled), _)) = eval(car, env) else {
+      return makeEvalError("car of list is not a function, found: \(car) in list \(expr)")
     }
-
-    let evalResult = eval(head, env)
-    guard case .success((.fun(let fn), _)) = evalResult else {
-      switch evalResult {
-      case .failure(let failure): return makeEvalError(failure.message)
-      case .success((let nonMatchingExpr, _)):
-        return makeEvalError(
-          "car of list is not a function, found: \(nonMatchingExpr) in list \(expr)")
-      }
+    let pairs = collectPairs(cdr)
+    guard case .success(let args) = pairs else {
+      return pairs.map { _ in (.null, env) }
     }
-
-    return fn(tail, env)
+    return carEvaled(args, env)
   case .variable(let val):
     if let expr = env[val] {
       return .success((expr, env))

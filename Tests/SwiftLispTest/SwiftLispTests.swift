@@ -22,11 +22,11 @@ import Testing
       .success(Expr.number(-8))
     ),
     ("(car '(1 2 3))", .success(Expr.number(1))),
-    ("(cdr '(1 2 3))", .success(Expr.list([Expr.number(2), Expr.number(3)]))),
+    ("(cdr '(1 2 3))", .success(exprsToPairs([Expr.number(2), Expr.number(3)]))),
     (
       "(cons 1 '(2 3))",
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(1),
           Expr.number(2),
           Expr.number(3),
@@ -36,7 +36,7 @@ import Testing
     (
       "(cons 1 (cdr '(1 2 3)))",
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(1),
           Expr.number(2),
           Expr.number(3),
@@ -68,7 +68,7 @@ import Testing
       (f 3)
       """,
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(1),
           Expr.number(3),
           Expr.number(3),
@@ -101,7 +101,7 @@ import Testing
       (def map (
         fn (f xs) 
         (cond
-          ((eq (car xs) null) '())
+          ((eq xs null) '())
           (true (cons (f (car xs))
         (map f (cdr xs))
         ))
@@ -109,7 +109,7 @@ import Testing
       (map (fn (x) (+ x 1)) '(1 2 3))
       """,
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(2),
           Expr.number(3),
           Expr.number(4),
@@ -121,7 +121,7 @@ import Testing
       (def map (
         fn (f xs) 
         (cond
-          ((eq (car xs) null) '())
+          ((eq xs null) '())
           (true (cons (f (car xs))
         (map f (cdr xs))
         ))
@@ -129,12 +129,12 @@ import Testing
       (map (fn (x) (+ x 1)) '())
       """,
       .success(
-        Expr.list([]))
+        exprsToPairs([]))
     ),
     (
       "'(1 2 3)",
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(1),
           Expr.number(2),
           Expr.number(3),
@@ -143,7 +143,7 @@ import Testing
     (
       "'(1 2 3)",
       .success(
-        Expr.list([
+        exprsToPairs([
           Expr.number(1),
           Expr.number(2),
           Expr.number(3),
@@ -181,7 +181,7 @@ import Testing
         )
       )
       (filter (fn (x) (eq 2 x)) '(1 2 3 2 4 5 2))
-      """, .success(Expr.list([Expr.number(2), Expr.number(2), Expr.number(2)]))
+      """, .success(exprsToPairs([Expr.number(2), Expr.number(2), Expr.number(2)]))
     ),
     (
       """
@@ -262,7 +262,8 @@ import Testing
       (define () (+ a b))
       """,
       makeEvalError(
-        "define's first arg should be a symbol or list of symbols (at least 1 symbols), found: ()")
+        "define's first arg should be a symbol or list of symbols (at least 1 symbols), found: null"
+      )
     ),
 
     (
@@ -322,7 +323,7 @@ import Testing
                        (else even?))))
           (cons parity (filter parityFn xs))))
       (same-parity 1 2 3 4 5 6 7)
-      """, .success(.list([.number(1), .number(3), .number(5), .number(7)]))
+      """, .success(exprsToPairs([.number(1), .number(3), .number(5), .number(7)]))
     ),
     (
       """
@@ -343,7 +344,7 @@ import Testing
                        (else even?))))
           (cons parity (filter parityFn xs))))
       (same-parity 2 3 4 5 6 7)
-      """, .success(.list([.number(2), .number(4), .number(6)]))
+      """, .success(exprsToPairs([.number(2), .number(4), .number(6)]))
     ),
     (
       """
@@ -360,7 +361,7 @@ import Testing
               
       """,
       .success(
-        .list(
+        exprsToPairs(
           [
             .bool(false), .bool(false), .bool(true),
             .bool(true), .bool(true), .bool(true),

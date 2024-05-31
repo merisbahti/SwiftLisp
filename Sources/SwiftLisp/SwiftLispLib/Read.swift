@@ -42,8 +42,6 @@ extension Expr: CustomStringConvertible {
       return pairToString(pair)
     case Expr.variable(let string):
       return string
-    case Expr.list(let exprs):
-      return "(\(exprs.map({$0.description}).joined(separator: " ")))"
     case Expr.fun(_):
       return "function"
     case Expr.null:
@@ -85,7 +83,16 @@ private func numberOrVariable(val: String) -> Expr {
   }
 }
 
-func quoted(_ expr: Expr) -> Expr { return Expr.list([Expr.variable("quote"), expr]) }
+func quoted(_ expr: Expr) -> Expr {
+  return Expr.pair((Expr.variable("quote"), .pair((expr, .null))))
+}
+
+func exprsToPairs(_ exprs: [Expr]) -> Expr {
+  switch exprs.first {
+  case .some(let expr): .pair((expr, exprsToPairs(Array(exprs.dropFirst()))))
+  default: .null
+  }
+}
 
 private func parseExpr() -> GenericParser<String, (), Expr> {
   let skip = StringParser.oneOf("  \n\r").many
@@ -103,7 +110,7 @@ private func parseExpr() -> GenericParser<String, (), Expr> {
 
   let parseExpr = GenericParser.recursive { (parseExpr: GenericParser<String, (), Expr>) in
     let parseList: GenericParser<String, (), Expr>! =
-      (Expr.list <^> (oparen *> parseExpr.many <* cparen))
+      (exprsToPairs <^> (oparen *> parseExpr.many <* cparen))
     let parseQuoted: GenericParser<String, (), Expr>! = (quoted <^> (quote *> parseExpr))
     return skip *> (atom <|> parseList <|> string <|> parseQuoted) <* skip
   }
