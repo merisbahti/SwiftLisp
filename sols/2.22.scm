@@ -21,4 +21,4 @@
   (iter items nil))
 
 (print "it still puts things in the wrong order, but now the list is in the 'head' position")
-(assert (square-list '(1 2 3 4)) '(16 9 4 1))
+(assert (square-list '(1 2 3 4)) (cons (cons (cons (cons null 1) 4) 9) 16))

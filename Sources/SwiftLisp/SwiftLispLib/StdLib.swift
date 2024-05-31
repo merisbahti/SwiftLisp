@@ -306,7 +306,7 @@ public let stdLib: Env = [
     }
 
     guard case .success(let bindings) = bindingsResult else {
-      return makeEvalError("woops")
+      return bindingsResult.map { x in (.null, originalEnv) }
     }
 
     let newEnv = originalEnv.merging(bindings, uniquingKeysWith: { (_, b) in b })
@@ -385,13 +385,7 @@ public let stdLib: Env = [
       return secondArgEvalResult
     }
 
-    switch secondArgEvaled {
-    case .null: return Result.success((Expr.pair((firstArgEvaled, .null)), env))
-    case .pair(let pair): return Result.success((Expr.pair((firstArgEvaled, .pair(pair))), env))
-    default:
-      return makeEvalError(
-        "Expected second arg to cons to be pair or list, but found: \(secondArgEvaled)")
-    }
+    return .success((.pair((firstArgEvaled, secondArgEvaled)), env))
   },
   "eval": Expr.fun { (exprs, env) in
     if exprs.count != 1 {
