@@ -29,6 +29,11 @@
 
 (define = eq)
 
+(define (append list1 list2)
+  (if (null? list1)
+    list2
+    (cons (car list1) (append (cdr list1) list2))))
+
 (defMacro (assert a b)
   (let ((aEvaled (eval a))
         (bEvaled (eval b)))
@@ -43,3 +48,11 @@
   (cond
     ((eval pred) (eval consequent))
     (else (eval alternate))))
+
+(define (reverse x)
+  (def reverse-iter
+    (fn (x acc)
+      (cond
+        ((null? x) acc)
+        (true (reverse-iter (cdr x) (cons (car x) acc))))))
+  (reverse-iter x '()))

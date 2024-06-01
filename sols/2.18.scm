@@ -1,13 +1,9 @@
-(def
-  reverse
-  (fn (x)
-    (reverse-iter x '())))
-
-(def reverse-iter
-  (fn (x acc)
+(define (reverse x)
+  (define (reverse-iter x acc)
     (cond
       ((null? x) acc)
-      (true (reverse-iter (cdr x) (cons (car x) acc))))))
+      (else (reverse-iter (cdr x) (cons (car x) acc)))))
+  (reverse-iter x '()))
 
 (assert
   (reverse '(1 4 9 16 25))
