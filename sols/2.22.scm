@@ -8,7 +8,7 @@
           answer))))
   (iter items nil))
 
-(print "it's because cons adds to the front of the list, and we're processing the first item first.")
+;; it's because cons adds to the front of the list, and we're processing the first item first.
 (assert (square-list '(1 2 3 4)) '(16 9 4 1))
 
 (define (square-list items)
@@ -20,5 +20,6 @@
           (square (car things))))))
   (iter items nil))
 
-(print "it still puts things in the wrong order, but now the list is in the 'head' position")
-(assert (square-list '(1 2 3 4)) (cons (cons (cons (cons null 1) 4) 9) 16))
+;; it still puts things in the wrong order, but now the list is in the 'head' position
+
+(assert (square-list '(1 2 3 4 5)) (cons (cons (cons (cons null 1) 4) 9) 16))
