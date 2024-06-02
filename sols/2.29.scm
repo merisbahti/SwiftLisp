@@ -47,11 +47,10 @@
     (branch-balanced? (right-branch mobile))))
 
 (define (branch-balanced? branch)
-  (let
-    ((structure (branch-structure branch)))
-    (cond
-      ((number? structure) true)
-      (else (mobile-balanced? structure)))))
+  (define structure (branch-structure branch))
+  (cond
+    ((number? structure) true)
+    (else (mobile-balanced? structure))))
 
 (define (branch-torque branch)
   (*

@@ -150,7 +150,7 @@ import Testing
         ])
       )
     ),
-    ("(def def 2)", makeEvalError("\"def\" is already defined in the environment.")),
+    ("(def def 2)", .success(.null)),
     ("(def a 1 2 3)", makeEvalError("\"def\" takes 2 arguments.")),
     (
       """
@@ -368,7 +368,15 @@ import Testing
             .bool(true), .bool(true),
           ]))
     ),
-
+    (
+      """
+        (define a 1)
+        (define (f x) 
+          (define a 2) 
+          (+ a x))
+        (list a (f 3) a)
+      """, .success(exprsToPairs([.number(1), .number(5), .number(1)]))
+    ),
     (
       """
       ;; one comment

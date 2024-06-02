@@ -93,12 +93,8 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
   return unapply(exprs).flatMap { (head, tail) in
     switch head {
     case Expr.variable(let variableName):
-      if env[variableName] != nil {
-        return makeEvalError("\"\(variableName)\" is already defined in the environment.")
-      } else {
-        return unapply(tail).flatMap { (head2, _) in
-          .success((variableName, head2))
-        }
+      return unapply(tail).flatMap { (head2, _) in
+        .success((variableName, head2))
       }
     default:
       return makeEvalError("First arg to def must be symbol.")
@@ -108,7 +104,7 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
       .success(
         (
           Expr.null,
-          env.merging([symbol: evaluatedExpr]) { env, _ in env }
+          env.merging([symbol: evaluatedExpr]) { a, b in b }
         ))
     }
   }
