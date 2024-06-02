@@ -75,3 +75,6 @@
     ((not (pair? tree)) (list tree))
     (else (append (enumerate-tree (car tree))
            (enumerate-tree (cdr tree))))))
+
+(define (length sequence)
+  (accumulate (lambda (skip x) (+ 1 x)) 0 sequence))
