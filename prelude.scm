@@ -1,4 +1,6 @@
+(define lambda fn)
 (def not
+
   (fn (x)
     (cond
       (x false)
