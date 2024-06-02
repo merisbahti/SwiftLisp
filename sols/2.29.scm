@@ -20,11 +20,10 @@
                     (make-branch 5 1)))))
 
 (define (branch-weight branch)
-  (let
-    ((structure (branch-structure branch)))
-    (cond
-      ((number? structure) structure)
-      (else (total-weight structure)))))
+  (define structure (branch-structure branch))
+  (cond
+    ((number? structure) structure)
+    (else (total-weight structure))))
 
 (define (total-weight mobile)
   (+
