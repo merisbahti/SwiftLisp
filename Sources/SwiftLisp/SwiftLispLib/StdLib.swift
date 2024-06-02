@@ -321,7 +321,11 @@ public let stdLib: Env = [
     let evaled = eval(first, env)
 
     guard case .success((.pair((let pair)), _)) = evaled else {
-      return makeEvalError("Can only apply car to pair, got: \(evaled)")
+      switch evaled {
+      case .failure(let evalError): return .failure(evalError)
+      case .success(let otherExpr):
+        return makeEvalError("Can only apply car to pair, got: \(otherExpr.0)")
+      }
     }
     return .success((pair.0, env))
   },
@@ -331,7 +335,11 @@ public let stdLib: Env = [
     }
     let evaled = eval(first, env)
     guard case .success((.pair((let pair)), _)) = evaled else {
-      return makeEvalError("Can only apply cdr to pair, got: \(evaled)")
+      switch evaled {
+      case .failure(let evalError): return .failure(evalError)
+      case .success(let otherExpr):
+        return makeEvalError("Can only apply car to pair, got: \(otherExpr.0)")
+      }
     }
     return .success((pair.1, env))
   },
