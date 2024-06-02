@@ -95,7 +95,16 @@ func exprsToPairs(_ exprs: [Expr]) -> Expr {
 }
 
 private func parseExpr() -> GenericParser<String, (), Expr> {
-  let skip = StringParser.oneOf("  \n\r").many
+  let newline =
+    StringParser.character("\n")
+  let semi = StringParser.character(";")
+  let comment =
+    ((semi *> semi)
+    *> StringParser.anyCharacter.manyTill(newline)).map { _ in " " }
+
+  let whitespace = StringParser.oneOf("  \n\r").map { _ in " " }
+  let skip = (comment <|> whitespace).many
+
   let oparen = StringParser.character("(")
   let cparen = StringParser.character(")")
   let quote = StringParser.character("'")

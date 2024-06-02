@@ -368,6 +368,40 @@ import Testing
             .bool(true), .bool(true),
           ]))
     ),
+
+    (
+      """
+      ;; one comment
+        (list ;; some comment
+          (number? false)
+          (number? '(1 2 3)) ;; funny comment
+
+
+        ;; two comments
+        ;; other comment
+
+
+        ;; comment after a while
+
+
+          
+          (pair? '(1 2 3))
+          (pair? '())
+          (number? 1)
+          (number? (+ 1 2))
+          (bool? false)
+          (bool? true))
+          ;; ending comment
+              
+      """,
+      .success(
+        exprsToPairs(
+          [
+            .bool(false), .bool(false), .bool(true),
+            .bool(true), .bool(true), .bool(true),
+            .bool(true), .bool(true),
+          ]))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
