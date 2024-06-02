@@ -24,7 +24,11 @@ if arguments.count == 2 {
   let preludeEnv = read(input: preludeContent).flatMap { evalWithEnv($0, stdLib) }.map { $0.1 }
 
   guard case .success(let preludeEnv) = preludeEnv else {
-    print("Failed to evaluate preludeEnv: \(preludeEnv)")
+    switch preludeEnv {
+    case .failure(let evalError):
+      print("Failed to evaluate preludeEnv: \(evalError.message)")
+    case _: print("weird error: \(preludeEnv)")
+    }
     exit(1)
   }
 
