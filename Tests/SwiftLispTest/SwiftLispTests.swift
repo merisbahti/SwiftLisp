@@ -446,6 +446,15 @@ import Testing
       (top-fn (fn (x) 1))      
       """, .success(.number(10))
     ),
+    (
+      """
+      (define (lower-fn op) something-else)
+      (define (top-fn op something-else)
+        (lower-fn (lambda (x y)
+                   (op 1))))
+      (print (top-fn (lambda (x) 1) something-else))      
+      """, makeEvalError("Variable not found: something-else")
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
