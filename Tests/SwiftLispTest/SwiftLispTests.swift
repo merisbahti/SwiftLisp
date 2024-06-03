@@ -452,7 +452,7 @@ import Testing
       (define (top-fn op something-else)
         (lower-fn (lambda (x y)
                    (op 1))))
-      (print (top-fn (lambda (x) 1) something-else))      
+      (top-fn (lambda (x) 1) 10)      
       """, makeEvalError("Variable not found: something-else")
     ),
   ]
