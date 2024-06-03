@@ -19,6 +19,7 @@
     (else
       (cons (proc (car items))
         (map proc (cdr items))))))
+
 (define (newline) (print ""))
 (define display print)
 
@@ -44,6 +45,22 @@
         null)
       (else
         (print "assertion failed, found: " aEvaled ", but expected: " bEvaled " (" a " != " b ")")))))
+
+(defMacro (apply fn seq)
+  (eval (cons (eval fn) (eval seq))))
+
+(defMacro (dprint . exprs)
+  (let (
+        (firstLine (print "========="))
+        (firstLine
+          (map (lambda (x)
+                (cond
+                  ((string? x) (print x))
+                  (else (print x ": " (eval x)))))
+            exprs)))
+    (print "=========")))
+
+(assert (apply + (list 1 5)) 6)
 
 (defMacro
   (if pred consequent alternate)
@@ -78,3 +95,38 @@
 
 (define (length sequence)
   (accumulate (lambda (skip x) (+ 1 x)) 0 sequence))
+
+(define (someOp someOp x) x)
+(define (lambdaUsingOp someOp y) (someOp y))
+(define (otherLambdaWithOp someOp i j) (lambdaUsingOp (someOp i j)))
+(print "test1")
+(otherLambdaWithOp + 10 20)
+(print "test2")
+
+;; FIX SCOPING ERROR IF oppp is changed to op, this fails
+(define (map-n op . seqs)
+  (define (c-args seqs)
+    (cond
+      ((null? (car seqs)) '())
+      ((pair? seqs) (append
+                     (list (map car seqs))
+                     (c-args
+                       (map cdr seqs))))))
+  (accumulate
+    (lambda (args acc)
+      (cons (eval (cons op args)) acc))
+    '()
+    (c-args seqs)))
+
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+    nil
+    (cons
+      (accumulate op init (map car seqs))
+      (accumulate-n op init (map cdr seqs)))))
+
+(assert
+  (map-n * '(1 2 3 4) '(5 6 7 8))
+  '(5 12 21 32))
+
+(fail "bruuuh")

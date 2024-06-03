@@ -68,7 +68,7 @@ func collectPairs(_ expr: Expr, _ acc: [Expr] = []) -> Result<[Expr], EvalError>
   case .pair((let car, .null)): return .success(acc.appending(car))
   case .pair((let car, let cdr)): return collectPairs(cdr, acc.appending(car))
   case .null: return .success([])
-  case let x: return makeEvalError("Expected pair, found: \(x)'")
+  case let x: return .success(acc.appending(x))
   }
 }
 
@@ -76,7 +76,8 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .pair((let car, let cdr)):
     guard case .success((.fun(let carEvaled), _)) = eval(car, env) else {
-      return makeEvalError("car of pair is not a function, found: \(car) in pair \(expr)")
+      return makeEvalError(
+        "car of pair is not a function, found: \(car) in pair \(expr)")
     }
     let pairs = collectPairs(cdr)
     guard case .success(let args) = pairs else {
@@ -89,10 +90,6 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     } else {
       return .failure(EvalError(message: "Variable not found: \(val)"))
     }
-  case .fun:
-    return .failure(EvalError(message: "Cannot evaluate function."))
-  case .null:
-    return .failure(EvalError(message: "Can't eval null"))
   default:
     return .success((expr, env))
   }

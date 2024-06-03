@@ -410,6 +410,16 @@ import Testing
             .bool(true), .bool(true),
           ]))
     ),
+    (
+      """
+
+      (define (someOp x) x)
+      (define (lambdaUsingOp y) (someOp y))
+      (define (otherLambdaWithOp someOp i j) (lambdaUsingOp (someOp i j)))
+      (print "test1")
+      (otherLambdaWithOp + 10 20)
+      """, .success(.number(30))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {

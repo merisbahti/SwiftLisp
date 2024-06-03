@@ -273,6 +273,21 @@ public let stdLib: Env = [
       return false
     }
   },
+  "fail": Expr.fun { (exprs, env) in
+
+    let arg = exprs.first
+
+    guard case .some(let arg) = exprs.first, exprs.count == 1 else {
+      return makeEvalError(
+        "Expected one arg to fail, found: \(exprs)")
+    }
+
+    switch eval(arg, env) {
+    case .failure(let evalError): return .failure(evalError)
+    case .success((.string(let str), _)): return makeEvalError(str)
+    default: return makeEvalError("woops")
+    }
+  },
   "else": Expr.bool(true),
   "let": Expr.fun { (exprs, originalEnv) in
     let args = (exprs.first, exprs.dropFirst().first)
