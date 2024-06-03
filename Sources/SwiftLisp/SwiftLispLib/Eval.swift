@@ -77,7 +77,7 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   case .pair((let car, let cdr)):
     guard case .success((.fun(let carEvaled), _)) = eval(car, env) else {
       return makeEvalError(
-        "car of pair is not a function, found: \(car) in pair \(expr)")
+        "\(car) is not a function (in pair \(expr))")
     }
     let pairs = collectPairs(cdr)
     guard case .success(let args) = pairs else {
