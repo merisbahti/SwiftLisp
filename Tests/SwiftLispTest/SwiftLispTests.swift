@@ -12,7 +12,7 @@ import Testing
     ("(+ 1 2)", .success(Expr.number(3))),
     ("(+ a 3)", makeEvalError("Variable not found: a")),
     ("(- 3 5)", .success(Expr.number(-2))),
-    ("(1 2 3)", makeEvalError("car of pair is not a function, found: 1 in pair (1 2 3)")),
+    ("(1 2 3)", makeEvalError("1 is not a function (in pair (1 2 3))")),
     ("(def a (+ 5 3)) (def b 5) (+ a b)", .success(Expr.number(13))),
     ("(def f (fn (a b) (+ a a b))) (f 2 5)", .success(Expr.number(9))),
     ("((fn (a b) (+ a b)) 2 5)", .success(Expr.number(7))),
@@ -412,49 +412,19 @@ import Testing
     ),
     (
       """
-      (define nil '())
-      (def null?
-        (fn (x)
-          (cond
-            ((eq x nil) true)
-            (true false))))
-      (defMacro
-        (if pred consequent alternate)
-        (cond
-          ((eval pred) (eval consequent))
-          (else (eval alternate))))
-      (define (append list1 list2)
-        (if (null? list1)
-          list2
-          (cons (car list1) (append (cdr list1) list2))))
-      (define lambda fn)
-      (define (map proc items)
-        (cond
-          ((null? items) nil)
-          (else
-            (cons (proc (car items))
-              (map proc (cdr items))))))
       (define (accumulate op initial sequence)
-        (if (null? sequence)
-          initial
-          (op (car sequence)
-            (accumulate op initial (cdr sequence)))))
+        (cond
+          ((eq sequence '()) initial)
+          (else (op (car sequence)
+                 (accumulate op initial (cdr sequence))))))
       (define (map-n op . seqs)
-        (define (c-args seqs)
-          (cond
-            ((null? (car seqs)) '())
-            ((pair? seqs) (append
-                           (list (map car seqs))
-                           (c-args
-                             (map cdr seqs))))))
         (accumulate
-          (lambda (args acc)
+          (fn (args acc)
             (cons (eval (cons op args)) acc))
           '()
-          (c-args seqs)))
-
+          seqs))
       (map-n * '(1 2 3 4) '(5 6 7 8))
-      """, .success(exprsToPairs([.number(5), .number(12), .number(21), .number(32)]))
+      """, .success(exprsToPairs([.number(24), .number(1680)]))
     ),
   ]
 )
