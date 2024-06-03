@@ -412,19 +412,11 @@ import Testing
     ),
     (
       """
-      (define (accumulate op initial sequence)
-        (cond
-          ((eq sequence '()) initial)
-          (else (op (car sequence)
-                 (accumulate op initial (cdr sequence))))))
-      (define (map-n op . seqs)
-        (accumulate
-          (fn (args acc)
-            (cons (eval (cons op args)) acc))
-          '()
-          seqs))
-      (map-n * '(1 2 3 4) '(5 6 7 8))
-      """, .success(exprsToPairs([.number(24), .number(1680)]))
+      (define (lower-fn op) (op 1 1))
+      (define (top-fn op)
+        (lower-fn (fn (x y) (op 1))))
+      (top-fn (fn (x) (x)))
+      """, .success(.number(1))
     ),
   ]
 )
