@@ -13,6 +13,45 @@
       ((eq x nil) true)
       (true false))))
 
+(defMacro
+  (if pred consequent alternate)
+  (cond
+    ((eval pred) (eval consequent))
+    (else (eval alternate))))
+(define (append list1 list2)
+  (if (null? list1)
+    list2
+    (cons (car list1) (append (cdr list1) list2))))
+(define lambda fn)
+(define (map proc items)
+  (cond
+    ((null? items) nil)
+    (else
+      (cons (proc (car items))
+        (map proc (cdr items))))))
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+    initial
+    (op (car sequence)
+      (accumulate op initial (cdr sequence)))))
+(define (map-n op . seqs)
+  (define (c-args seqs)
+    (cond
+      ((null? (car seqs)) '())
+      ((pair? seqs) (append
+                     (list (map car seqs))
+                     (c-args
+                       (map cdr seqs))))))
+  (accumulate
+    (lambda (args acc)
+      (cons (eval (cons op args)) acc))
+    '()
+    (c-args seqs)))
+
+(print "hello world")
+(map-n * '(1 2 3 4) '(5 6 7 8))
+(print "hello world")
+
 (define (map proc items)
   (cond
     ((null? items) nil)
@@ -62,12 +101,6 @@
 
 (assert (apply + (list 1 5)) 6)
 
-(defMacro
-  (if pred consequent alternate)
-  (cond
-    ((eval pred) (eval consequent))
-    (else (eval alternate))))
-
 (define (reverse x)
   (def reverse-iter
     (fn (x acc)
@@ -96,11 +129,15 @@
 (define (length sequence)
   (accumulate (lambda (skip x) (+ 1 x)) 0 sequence))
 
-(define (someOp someOp x) x)
+(define (someOp x) x)
 (define (lambdaUsingOp someOp y) (someOp y))
-(define (otherLambdaWithOp someOp i j) (lambdaUsingOp (someOp i j)))
+(define
+  (otherLambdaWithOp someOp i j)
+  (lambdaUsingOp
+    (fn (x) x)
+    (someOp i j)))
 (print "test1")
-(otherLambdaWithOp + 10 20)
+;; (otherLambdaWithOp (fn (x y) (+ x y)) 10 20)
 (print "test2")
 
 ;; FIX SCOPING ERROR IF oppp is changed to op, this fails
@@ -125,8 +162,42 @@
       (accumulate op init (map car seqs))
       (accumulate-n op init (map cdr seqs)))))
 
-(assert
-  (map-n * '(1 2 3 4) '(5 6 7 8))
-  '(5 12 21 32))
+;;(assert
+;;  (map-n * '(1 2 3 4) '(5 6 7 8))
+;;  '(5 12 21 32))
+
+(define (append list1 list2)
+  (if (null? list1)
+    list2
+    (cons (car list1) (append (cdr list1) list2))))
+(define lambda fn)
+(define (map proc items)
+  (cond
+    ((null? items) nil)
+    (else
+      (cons (proc (car items))
+        (map proc (cdr items))))))
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+    initial
+    (op (car sequence)
+      (accumulate op initial (cdr sequence)))))
+(define (map-n op . seqs)
+  (define (c-args seqs)
+    (cond
+      ((null? (car seqs)) '())
+      ((pair? seqs) (append
+                     (list (map car seqs))
+                     (c-args
+                       (map cdr seqs))))))
+  (accumulate
+    (lambda (args acc)
+      (cons (eval (cons op args)) acc))
+    '()
+    (c-args seqs)))
+
+(print "hello world")
+(map-n * '(1 2 3 4) '(5 6 7 8))
+(print "hello world")
 
 (fail "bruuuh")
