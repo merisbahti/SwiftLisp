@@ -58,6 +58,24 @@ import Testing
     ),
     (
       """
+       (define (f a) (
+       cond
+       ((eq a 0) '(1 3 3 7))
+       (true (f (- a 1)))
+      ))
+      (f 3)
+      """,
+      .success(
+        exprsToPairs([
+          Expr.number(1),
+          Expr.number(3),
+          Expr.number(3),
+          Expr.number(7),
+        ])
+      )
+    ),
+    (
+      """
        (def f (
        fn (a) (
        cond
@@ -417,6 +435,16 @@ import Testing
         (lower-fn (fn (x y) (op 1))))
       (top-fn (fn (x) (x)))
       """, .success(.number(1))
+    ),
+    (
+      """
+      (define (lower-fn op) something-else)
+      (define (top-fn op)
+        (lower-fn (fn (x y)
+                   (op 1))))
+      (define something-else 10)
+      (top-fn (fn (x) 1))      
+      """, .success(.number(10))
     ),
   ]
 )
