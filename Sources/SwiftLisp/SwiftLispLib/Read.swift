@@ -99,7 +99,7 @@ private func parseExpr() -> GenericParser<String, (), Expr> {
     StringParser.character("\n")
   let semi = StringParser.character(";")
   let comment =
-    ((semi *> semi)
+    (semi
     *> StringParser.anyCharacter.manyTill(newline)).map { _ in " " }
 
   let whitespace = StringParser.oneOf("  \n\r").map { _ in " " }
