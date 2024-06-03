@@ -412,13 +412,49 @@ import Testing
     ),
     (
       """
+      (define nil '())
+      (def null?
+        (fn (x)
+          (cond
+            ((eq x nil) true)
+            (true false))))
+      (defMacro
+        (if pred consequent alternate)
+        (cond
+          ((eval pred) (eval consequent))
+          (else (eval alternate))))
+      (define (append list1 list2)
+        (if (null? list1)
+          list2
+          (cons (car list1) (append (cdr list1) list2))))
+      (define lambda fn)
+      (define (map proc items)
+        (cond
+          ((null? items) nil)
+          (else
+            (cons (proc (car items))
+              (map proc (cdr items))))))
+      (define (accumulate op initial sequence)
+        (if (null? sequence)
+          initial
+          (op (car sequence)
+            (accumulate op initial (cdr sequence)))))
+      (define (map-n op . seqs)
+        (define (c-args seqs)
+          (cond
+            ((null? (car seqs)) '())
+            ((pair? seqs) (append
+                           (list (map car seqs))
+                           (c-args
+                             (map cdr seqs))))))
+        (accumulate
+          (lambda (args acc)
+            (cons (eval (cons op args)) acc))
+          '()
+          (c-args seqs)))
 
-      (define (someOp x) x)
-      (define (lambdaUsingOp y) (someOp y))
-      (define (otherLambdaWithOp someOp i j) (lambdaUsingOp (someOp i j)))
-      (print "test1")
-      (otherLambdaWithOp + 10 20)
-      """, .success(.number(30))
+      (map-n * '(1 2 3 4) '(5 6 7 8))
+      """, .success(exprsToPairs([.number(5), .number(12), .number(21), .number(32)]))
     ),
   ]
 )
