@@ -120,14 +120,6 @@
 (define (length sequence)
   (accumulate (lambda (skip x) (+ 1 x)) 0 sequence))
 
-(define (someOp x) x)
-(define (lambdaUsingOp someOp y) (someOp y))
-(define
-  (otherLambdaWithOp someOp i j)
-  (lambdaUsingOp
-    (fn (x) x)
-    (someOp i j)))
-
 (define lambda fn)
 (define (map proc items)
   (cond
@@ -153,3 +145,10 @@
       (cons (eval (cons op args)) acc))
     '()
     (c-args seqs)))
+
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+    nil
+    (cons
+      (accumulate op init (map car seqs))
+      (accumulate-n op init (map cdr seqs)))))
