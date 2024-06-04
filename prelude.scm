@@ -2,7 +2,7 @@
 (defMacro (dprint . exprs)
   (let (
         (firstLine (print "========="))
-        (firstLine
+        (firstLine2
           (map (lambda (x)
                 (cond
                   ((string? x) (print x))
