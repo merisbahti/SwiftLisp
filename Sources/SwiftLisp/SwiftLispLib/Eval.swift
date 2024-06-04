@@ -38,7 +38,18 @@ extension Expr: Equatable {
 }
 
 public typealias EvalResult = Result<(Expr, Env), EvalError>
-public typealias Env = [String: Expr]
+public class Env {
+  var baseEnv: Env?
+  var myEnv: [String: Expr]
+  init(_ initialEnv: [String: Expr], baseEnv baseEnv: Env? = .none) {
+    self.baseEnv = baseEnv
+    self.myEnv = initialEnv
+  }
+
+  func get(key: String) -> Expr? {
+    return myEnv[key] ?? (baseEnv.flatMap { base in base.get(key: key) })
+  }
+}
 
 public func makeEvalError<A>(_ msg: String) -> Result<A, EvalError> {
   .failure(EvalError(message: msg))
@@ -75,9 +86,12 @@ func collectPairs(_ expr: Expr, _ acc: [Expr] = []) -> Result<[Expr], EvalError>
 public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .pair((let car, let cdr)):
-    guard case .success((.fun(let carEvaled), _)) = eval(car, env) else {
-      return makeEvalError(
-        "\(car) is not a function (in pair \(expr))")
+    let headResult = eval(car, env)
+    guard case .success((.fun(let carEvaled), _)) = headResult else {
+      switch headResult {
+      case .failure(let evalError): return .failure(evalError)
+      default: return makeEvalError("\(car) is not a function (in pair \(expr))")
+      }
     }
     let pairs = collectPairs(cdr)
     guard case .success(let args) = pairs else {
@@ -85,7 +99,7 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     }
     return carEvaled(args, env)
   case .variable(let val):
-    if let expr = env[val] {
+    if let expr = env.get(key: val) {
       return .success((expr, env))
     } else {
       return .failure(EvalError(message: "Variable not found: \(val)"))
@@ -106,5 +120,6 @@ public func evalWithEnv(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), Eval
 }
 
 public func eval(_ exprs: [Expr]) -> Result<Expr, EvalError> {
-  return evalWithEnv(exprs, stdLib).map { $0.0 }
+  let newEnv = Env([:], baseEnv: stdLib)
+  return evalWithEnv(exprs, newEnv).map { $0.0 }
 }

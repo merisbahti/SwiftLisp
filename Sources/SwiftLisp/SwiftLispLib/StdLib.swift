@@ -101,11 +101,9 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
     }
   }.flatMap { (symbol, expr) -> EvalResult in
     eval(expr, env).flatMap { evaluatedExpr, _ in
-      .success(
-        (
-          Expr.null,
-          env.merging([symbol: evaluatedExpr]) { a, b in b }
-        ))
+      env.myEnv.updateValue(evaluatedExpr, forKey: symbol)
+
+      return .success((Expr.null, env))
     }
   }
 }
@@ -127,18 +125,19 @@ func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr
       return argsEvaledResult.map { _ in (.null, env) }
     }
 
-    let formalArgsEnv: Env = Dictionary(uniqueKeysWithValues: zip(symbols, argsEvaled))
+    let formalArgsEnv: Env = Env(
+      Dictionary(uniqueKeysWithValues: zip(symbols, argsEvaled)),
+      baseEnv: env
+    )
     let variadicArgEnv: Env =
-      (variadicSymbol.map { vKey in
-        [vKey: exprsToPairs(Array(argsEvaled.dropFirst(symbols.count)))]
-      }) ?? [:]
+      Env(
+        variadicSymbol.map { vKey in
+          [vKey: exprsToPairs(Array(argsEvaled.dropFirst(symbols.count)))]
+        } ?? [:], baseEnv: .some(formalArgsEnv)
 
-    let argsEnv =
-      fnEnv
-      .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
-      .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
+      )
 
-    return evalWithEnv(body, argsEnv).map { ($0.0, env) }
+    return evalWithEnv(body, variadicArgEnv).map { ($0.0, env) }
 
   })
   return Result.success(newFn)
@@ -172,22 +171,25 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
         "Wrong nr of args to \(macroName), got \(fnArgs.count) needed \(symbols.count)")
     }
 
-    let formalArgsEnv: Env = Dictionary(uniqueKeysWithValues: zip(symbols, fnArgs))
+    let formalArgsEnv: Env = Env(
+      Dictionary(uniqueKeysWithValues: zip(symbols, fnArgs)),
+      baseEnv: env
+    )
     let variadicArgEnv: Env =
-      (variadicSymbol.map { vKey in
-        [vKey: exprsToPairs(Array(fnArgs.dropFirst(symbols.count)))]
-      }) ?? [:]
+      Env(
+        variadicSymbol.map { vKey in
+          [vKey: exprsToPairs(Array(fnArgs.dropFirst(symbols.count)))]
+        } ?? [:], baseEnv: .some(formalArgsEnv)
 
-    let argsEnv =
-      fnEnv
-      .merging(formalArgsEnv, uniquingKeysWith: { (_, b) in b })
-      .merging(variadicArgEnv, uniquingKeysWith: { (_, b) in b })
+      )
 
-    return eval(.pair(bodyList), argsEnv).map { ($0.0, fnEnv) }
+    return eval(.pair(bodyList), variadicArgEnv).map { ($0.0, fnEnv) }
   })
 
+  env.myEnv.updateValue(newFn, forKey: macroName)
+
   return Result.success(
-    (newFn, env.merging([(macroName, newFn)], uniquingKeysWith: { (_, b) in b })))
+    (newFn, env))
 }
 
 func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> Expr {
@@ -201,7 +203,7 @@ func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> 
   }
 }
 
-public let stdLib: Env = [
+public let stdLib: Env = Env([
   "pair?":
     unaryMatcherFun("pair?") { x in
       switch x {
@@ -320,7 +322,7 @@ public let stdLib: Env = [
       return bindingsResult.map { x in (.null, originalEnv) }
     }
 
-    let newEnv = originalEnv.merging(bindings, uniquingKeysWith: { (_, b) in b })
+    let newEnv = Env(Dictionary(uniqueKeysWithValues: bindings), baseEnv: originalEnv)
 
     return eval(expr, newEnv).map { (expr, _) in (expr, originalEnv) }
   },
@@ -470,10 +472,9 @@ public let stdLib: Env = [
       return fnDef.map({ ($0, env) })
     }
 
-    return Result.success(
-      (
-        newFn, env.merging([(fnName, newFn)], uniquingKeysWith: { (_, b) in b })
-      ))
+    env.myEnv.updateValue(newFn, forKey: fnName)
+
+    return Result.success((newFn, env))
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .success((let head, let body)) = unapply(exprs) else {
@@ -486,4 +487,4 @@ public let stdLib: Env = [
 
     return defineFn(symbols, body, env).map { ($0, env) }
   },
-]
+])
