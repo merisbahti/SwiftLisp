@@ -1,10 +1,30 @@
 (define lambda fn)
+(defMacro (dprint . exprs)
+  (let (
+        (firstLine (print "========="))
+        (firstLine
+          (map (lambda (x)
+                (cond
+                  ((string? x) (print x))
+                  (else (print x ": " (eval x)))))
+            exprs)))
+    (print "=========")))
 (def not
-
   (fn (x)
     (cond
       (x false)
       (true true))))
+
+(defMacro
+  (if pred consequent alternate)
+  (cond
+    ((eval pred) (eval consequent))
+    (else (eval alternate))))
+(define (append list1 list2)
+  (if
+    (null? list1)
+    list2
+    (cons (car list1) (append (cdr list1) list2))))
 
 (define nil '())
 (def null?
@@ -13,15 +33,6 @@
       ((eq x nil) true)
       (true false))))
 
-(defMacro
-  (if pred consequent alternate)
-  (cond
-    ((eval pred) (eval consequent))
-    (else (eval alternate))))
-(define (append list1 list2)
-  (if (null? list1)
-    list2
-    (cons (car list1) (append (cdr list1) list2))))
 (define lambda fn)
 (define (map proc items)
   (cond
@@ -48,10 +59,6 @@
     '()
     (c-args seqs)))
 
-(print "hello world")
-(map-n * '(1 2 3 4) '(5 6 7 8))
-(print "hello world")
-
 (define (map proc items)
   (cond
     ((null? items) nil)
@@ -71,11 +78,6 @@
 
 (define = eq)
 
-(define (append list1 list2)
-  (if (null? list1)
-    list2
-    (cons (car list1) (append (cdr list1) list2))))
-
 (defMacro (assert a b)
   (let ((aEvaled (eval a))
         (bEvaled (eval b)))
@@ -87,17 +89,6 @@
 
 (defMacro (apply fn seq)
   (eval (cons (eval fn) (eval seq))))
-
-(defMacro (dprint . exprs)
-  (let (
-        (firstLine (print "========="))
-        (firstLine
-          (map (lambda (x)
-                (cond
-                  ((string? x) (print x))
-                  (else (print x ": " (eval x)))))
-            exprs)))
-    (print "=========")))
 
 (assert (apply + (list 1 5)) 6)
 
@@ -136,40 +127,7 @@
   (lambdaUsingOp
     (fn (x) x)
     (someOp i j)))
-(print "test1")
-;; (otherLambdaWithOp (fn (x y) (+ x y)) 10 20)
-(print "test2")
 
-;; FIX SCOPING ERROR IF oppp is changed to op, this fails
-(define (map-n op . seqs)
-  (define (c-args seqs)
-    (cond
-      ((null? (car seqs)) '())
-      ((pair? seqs) (append
-                     (list (map car seqs))
-                     (c-args
-                       (map cdr seqs))))))
-  (accumulate
-    (lambda (args acc)
-      (cons (eval (cons op args)) acc))
-    '()
-    (c-args seqs)))
-
-(define (accumulate-n op init seqs)
-  (if (null? (car seqs))
-    nil
-    (cons
-      (accumulate op init (map car seqs))
-      (accumulate-n op init (map cdr seqs)))))
-
-;;(assert
-;;  (map-n * '(1 2 3 4) '(5 6 7 8))
-;;  '(5 12 21 32))
-
-(define (append list1 list2)
-  (if (null? list1)
-    list2
-    (cons (car list1) (append (cdr list1) list2))))
 (define lambda fn)
 (define (map proc items)
   (cond
@@ -195,9 +153,3 @@
       (cons (eval (cons op args)) acc))
     '()
     (c-args seqs)))
-
-(print "hello world")
-(map-n * '(1 2 3 4) '(5 6 7 8))
-(print "hello world")
-
-(fail "bruuuh")

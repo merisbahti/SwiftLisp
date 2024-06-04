@@ -136,7 +136,6 @@ func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr
         } ?? [:], baseEnv: .some(formalArgsEnv)
 
       )
-
     return evalWithEnv(body, variadicArgEnv).map { ($0.0, env) }
 
   })
@@ -173,7 +172,7 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
 
     let formalArgsEnv: Env = Env(
       Dictionary(uniqueKeysWithValues: zip(symbols, fnArgs)),
-      baseEnv: env
+      baseEnv: fnEnv  // bit confusing... macros expand where they are called.
     )
     let variadicArgEnv: Env =
       Env(
@@ -376,6 +375,7 @@ public let stdLib: Env = Env([
               let result = Result<Expr, EvalError>.success($0.0)
               return result
             })
+        case .failure(let evalError): return .failure(evalError)
         default:
           return .none
         }

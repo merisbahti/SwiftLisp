@@ -41,8 +41,8 @@ public typealias EvalResult = Result<(Expr, Env), EvalError>
 public class Env {
   var baseEnv: Env?
   var myEnv: [String: Expr]
-  init(_ initialEnv: [String: Expr], baseEnv baseEnv: Env? = .none) {
-    self.baseEnv = baseEnv
+  init(_ initialEnv: [String: Expr], baseEnv base: Env? = .none) {
+    self.baseEnv = base
     self.myEnv = initialEnv
   }
 

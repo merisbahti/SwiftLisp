@@ -455,6 +455,24 @@ import Testing
       (top-fn (fn (x) 1) 10)      
       """, makeEvalError("Variable not found: something-else")
     ),
+    (
+      """
+        (define (append list1 list2)
+          (cond 
+            ((eq list1 '()) list2)
+            (else (cons (car list1) (append (cdr list1) list2)))))
+        (append (list 1 2 3) (list 4 5 6))
+      """,
+      .success(
+        exprsToPairs([
+          Expr.number(1),
+          Expr.number(2),
+          Expr.number(3),
+          Expr.number(4),
+          Expr.number(5),
+          Expr.number(6),
+        ]))
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
