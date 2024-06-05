@@ -169,3 +169,6 @@
       (op
         (car sequence)
         (fold-right op initial (cdr sequence))))))
+(define
+  (flatmap proc seq)
+  (accumulate append '() (map proc seq)))
