@@ -61,24 +61,32 @@ func comparisonOperator(_ symbol: String, _ opr: @escaping (Expr, Expr) -> Bool)
 }
 
 func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -> Expr {
-  return Expr.fun { (exprs: [Expr], env: Env) -> EvalResult in
-    if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
-      return eval(firstArg, env).flatMap { firstRes in
-        eval(secondArg, env).map { secondRes in (firstRes, secondRes) }
-      }.flatMap { args in
-        switch (args.0, args.1) {
-        case (.bool(let left), .bool(let right)):
-          return .success(.bool(opr(left, right)))
-        default:
-          return makeEvalError(
-            "Both args to \(symbol) need to be boolean, got: \(args.0) and \(args.1)"
-          )
-        }
+  return Expr.fun({ (exprs: [Expr], env: Env) -> EvalResult in
+    let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
+
+    let exprsVerified: Result<[Bool], EvalError> = exprsEvaled.reduce(.success([])) {
+      acc, curr in
+      switch (acc, curr) {
+      case (.failure(let evalError), _): return .failure(evalError)
+      case (.success(let acc), .success(.bool(let nr))):
+        return .success(acc.appending(nr))
+      case (_, .success(let expr)):
+        return makeEvalError("Error evaling \(symbol), expected bool but found: \(expr)")
+      case (_, .failure(let evalFailure)):
+        return .failure(evalFailure)
       }
-    } else {
-      return makeEvalError("\(symbol) takes 2 arguments.")
     }
-  }
+
+    guard case let .success(bools) = exprsVerified else {
+      return exprsVerified.map { _ in .number(0) }
+    }
+
+    let a = unapply(bools).map { (head, tail) in
+      Expr.bool(tail.reduce(head) { (acc, curr) in opr(acc, curr) })
+    }
+
+    return a
+  })
 }
 
 func def(_ exprs: [Expr], _ env: Env) -> EvalResult {

@@ -459,6 +459,11 @@ import Testing
     ),
     (
       """
+      (or false false true)      
+      """, .success(.bool(true))
+    ),
+    (
+      """
       (define (lower-fn op) something-else)
       (define (top-fn op something-else)
         (lower-fn (fn (x y)
