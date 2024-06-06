@@ -21,19 +21,23 @@ if arguments.count == 2 {
     exit(1)
   }
 
-  let preludeEnv = read(input: preludeContent).flatMap { evalWithEnv($0, stdLib) }.map { $0.1 }
+  let env = Env(
+    [:], baseEnv: stdLib
+  )
 
-  guard case .success(let preludeEnv) = preludeEnv else {
-    switch preludeEnv {
+  let preludeResult = read(input: preludeContent).flatMap { evalWithEnv($0, env) }
+
+  guard case .success(_) = preludeResult else {
+    switch preludeResult {
     case .failure(let evalError):
-      print("Failed to evaluate preludeEnv: \(evalError.message)")
-    case _: print("weird error: \(preludeEnv)")
+      print("Failed to evaluate preludeResult: \(evalError.message)")
+    case _: print("weird error: \(preludeResult)")
     }
     exit(1)
   }
 
   let exprs: Result<[Expr], EvalError> = read(input: input)
-  let result: Result<Expr, EvalError> = exprs.flatMap { evalWithEnv($0, preludeEnv) }.map { $0.0 }
+  let result: Result<Expr, EvalError> = exprs.flatMap { evalWithEnv($0, env) }
   switch result {
   case .failure(let e):
     print(e.message)

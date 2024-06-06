@@ -448,6 +448,11 @@ import Testing
     ),
     (
       """
+      (eval (list + 1 2 3))      
+      """, .success(.number(6))
+    ),
+    (
+      """
       (define (lower-fn op) something-else)
       (define (top-fn op something-else)
         (lower-fn (fn (x y)

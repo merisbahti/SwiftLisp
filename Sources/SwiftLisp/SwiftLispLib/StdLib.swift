@@ -6,7 +6,7 @@ func intIntOperator(_ opr: @escaping (Float64, Float64) -> Float64, _ symbol: St
       acc, curr in
       switch (acc, curr) {
       case (.failure(let evalError), _): return .failure(evalError)
-      case (.success(let acc), .success((.number(let nr), _))):
+      case (.success(let acc), .success(.number(let nr))):
         return .success(acc.appending(nr))
       case (_, .success(let expr)):
         return makeEvalError("Error evaling \(symbol), expected numbers but found: \(expr)")
@@ -16,15 +16,14 @@ func intIntOperator(_ opr: @escaping (Float64, Float64) -> Float64, _ symbol: St
     }
 
     guard case let .success(ints) = exprsVerified else {
-      return exprsVerified.map { _ in (.number(0), env) }
+      return exprsVerified.map { _ in .number(0) }
     }
 
     let a = unapply(ints).map { (head, tail) in
       Expr.number(tail.reduce(head) { (acc, curr) in opr(acc, curr) })
     }
 
-    return a.map { b in (b, env) }
-
+    return a
   })
 }
 func stringStringOperator(_ opr: @escaping (String, String) -> String, _ symbol: String) -> Expr {
@@ -34,8 +33,8 @@ func stringStringOperator(_ opr: @escaping (String, String) -> String, _ symbol:
         return accRes.flatMap { lhsEval in
           return eval(expr, env).flatMap { rhsEval in
             switch (lhsEval, rhsEval) {
-            case ((Expr.string(let nr1), _), (Expr.string(let nr2), _)):
-              return Result.success((Expr.string(opr(nr1, nr2)), env))
+            case (Expr.string(let nr1), Expr.string(let nr2)):
+              return Result.success(Expr.string(opr(nr1, nr2)))
             default:
               return makeEvalError(
                 "No number in \(symbol) operand, lhsEval \(lhsEval) rhsEval: \(rhsEval)"
@@ -50,12 +49,10 @@ func stringStringOperator(_ opr: @escaping (String, String) -> String, _ symbol:
 func comparisonOperator(_ symbol: String, _ opr: @escaping (Expr, Expr) -> Bool) -> Expr {
   return Expr.fun { (exprs: [Expr], env: Env) -> EvalResult in
     if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
-      return eval(firstArg, env).map { firstRes in
-        firstRes.0
-      }.flatMap { firstRes in
-        eval(secondArg, env).map { secondRes in (firstRes, secondRes.0) }
+      return eval(firstArg, env).flatMap { firstRes in
+        eval(secondArg, env).map { secondRes in (firstRes, secondRes) }
       }.flatMap { args in
-        .success((.bool(opr(args.0, args.1)), env))
+        .success(.bool(opr(args.0, args.1)))
       }
     } else {
       return makeEvalError("\(symbol) takes 2 arguments.")
@@ -66,14 +63,12 @@ func comparisonOperator(_ symbol: String, _ opr: @escaping (Expr, Expr) -> Bool)
 func boolBoolOperator(_ opr: @escaping (Bool, Bool) -> Bool, _ symbol: String) -> Expr {
   return Expr.fun { (exprs: [Expr], env: Env) -> EvalResult in
     if let firstArg = exprs.first, let secondArg = exprs.dropFirst().first {
-      return eval(firstArg, env).map { firstRes in
-        firstRes.0
-      }.flatMap { firstRes in
-        eval(secondArg, env).map { secondRes in (firstRes, secondRes.0) }
+      return eval(firstArg, env).flatMap { firstRes in
+        eval(secondArg, env).map { secondRes in (firstRes, secondRes) }
       }.flatMap { args in
         switch (args.0, args.1) {
         case (.bool(let left), .bool(let right)):
-          return .success((.bool(opr(left, right)), env))
+          return .success(.bool(opr(left, right)))
         default:
           return makeEvalError(
             "Both args to \(symbol) need to be boolean, got: \(args.0) and \(args.1)"
@@ -100,10 +95,10 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
       return makeEvalError("First arg to def must be symbol.")
     }
   }.flatMap { (symbol, expr) -> EvalResult in
-    eval(expr, env).flatMap { evaluatedExpr, _ in
+    eval(expr, env).flatMap { evaluatedExpr in
       env.myEnv.updateValue(evaluatedExpr, forKey: symbol)
 
-      return .success((Expr.null, env))
+      return .success(Expr.null)
     }
   }
 }
@@ -119,10 +114,10 @@ func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr
         "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
     }
 
-    let argsEvaledResult = resultsArray(fnArgs.map { arg in eval(arg, fnEnv).map { $0.0 } })
+    let argsEvaledResult = resultsArray(fnArgs.map { arg in eval(arg, fnEnv) })
 
     guard case .success(let argsEvaled) = argsEvaledResult else {
-      return argsEvaledResult.map { _ in (.null, env) }
+      return argsEvaledResult.map { _ in .null }
     }
 
     let formalArgsEnv: Env = Env(
@@ -136,13 +131,13 @@ func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr
         } ?? [:], baseEnv: .some(formalArgsEnv)
 
       )
-    return evalWithEnv(body, variadicArgEnv).map { ($0.0, env) }
+    return evalWithEnv(body, variadicArgEnv)
 
   })
   return Result.success(newFn)
 }
 
-func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> {
+func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<Expr, EvalError> {
   guard case (.some(let definee), .some(let body)) = (exprs.first, exprs.dropFirst().first),
     exprs.count == 2
   else {
@@ -182,13 +177,12 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<(Expr, Env), EvalError> 
 
       )
 
-    return eval(.pair(bodyList), variadicArgEnv).map { ($0.0, fnEnv) }
+    return eval(.pair(bodyList), variadicArgEnv)
   })
 
   env.myEnv.updateValue(newFn, forKey: macroName)
 
-  return Result.success(
-    (newFn, env))
+  return Result.success(newFn)
 }
 
 func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> Expr {
@@ -197,7 +191,7 @@ func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> 
       return makeEvalError("\(name) takes two args, found: \(exprs)")
     }
     return eval(head, env).map {
-      (.bool(fn($0.0)), env)
+      .bool(fn($0))
     }
   }
 }
@@ -275,7 +269,6 @@ public let stdLib: Env = Env([
     }
   },
   "fail": Expr.fun { (exprs, env) in
-
     let arg = exprs.first
 
     guard case .some(let arg) = exprs.first, exprs.count == 1 else {
@@ -285,7 +278,7 @@ public let stdLib: Env = Env([
 
     switch eval(arg, env) {
     case .failure(let evalError): return .failure(evalError)
-    case .success((.string(let str), _)): return makeEvalError(str)
+    case .success(.string(let str)): return makeEvalError(str)
     default: return makeEvalError("woops")
     }
   },
@@ -305,7 +298,7 @@ public let stdLib: Env = Env([
       else {
         return err
       }
-      return eval(value, env).map { (variableName, $0.0) }
+      return eval(value, env).map { (variableName, $0) }
     }
 
     let pairs = collectPairs(.pair(first))
@@ -318,12 +311,12 @@ public let stdLib: Env = Env([
     }
 
     guard case .success(let bindings) = bindingsResult else {
-      return bindingsResult.map { x in (.null, originalEnv) }
+      return bindingsResult.map { x in .null }
     }
 
     let newEnv = Env(Dictionary(uniqueKeysWithValues: bindings), baseEnv: originalEnv)
 
-    return eval(expr, newEnv).map { (expr, _) in (expr, originalEnv) }
+    return eval(expr, newEnv)
   },
   "null": Expr.null,
   "car": Expr.fun { (exprs: [Expr], env: Env) in
@@ -332,28 +325,28 @@ public let stdLib: Env = Env([
     }
     let evaled = eval(first, env)
 
-    guard case .success((.pair((let pair)), _)) = evaled else {
+    guard case .success(.pair((let pair))) = evaled else {
       switch evaled {
       case .failure(let evalError): return .failure(evalError)
       case .success(let otherExpr):
-        return makeEvalError("Can only apply car to pair, got: \(otherExpr.0)")
+        return makeEvalError("Can only apply car to pair, got: \(otherExpr)")
       }
     }
-    return .success((pair.0, env))
+    return .success(pair.0)
   },
   "cdr": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .some(let first) = exprs.first, exprs.count == 1 else {
       return makeEvalError("cdr must be applied to 1 argument.")
     }
     let evaled = eval(first, env)
-    guard case .success((.pair((let pair)), _)) = evaled else {
+    guard case .success(.pair((let pair))) = evaled else {
       switch evaled {
       case .failure(let evalError): return .failure(evalError)
       case .success(let otherExpr):
-        return makeEvalError("Can only apply car to pair, got: \(otherExpr.0)")
+        return makeEvalError("Can only apply cdr to pair, got: \(otherExpr)")
       }
     }
-    return .success((pair.1, env))
+    return .success(pair.1)
   },
   "true": Expr.bool(true),
   "false": Expr.bool(false),
@@ -368,11 +361,11 @@ public let stdLib: Env = Env([
 
       switch condExpr {
       case Expr.pair((let predExpr, .pair((let thenExpr, .null)))):
-        switch eval(predExpr, env).map({ $0.0 }) {
+        switch eval(predExpr, env) {
         case .success(Expr.bool(true)):
           return .some(
             eval(thenExpr, env).flatMap {
-              let result = Result<Expr, EvalError>.success($0.0)
+              let result = Result<Expr, EvalError>.success($0)
               return result
             })
         case .failure(let evalError): return .failure(evalError)
@@ -388,8 +381,7 @@ public let stdLib: Env = Env([
         )
       }
     }
-    return (maybeResult ?? .success(.null)).map { ($0, env) }
-
+    return (maybeResult ?? .success(.null))
   },
   "cons": Expr.fun { (exprs: [Expr], env: Env) in
     guard let firstArg = exprs.first, let secondArg = exprs.dropFirst().first else {
@@ -397,16 +389,16 @@ public let stdLib: Env = Env([
     }
 
     let firstArgEvalResult = eval(firstArg, env)
-    guard case .success((let firstArgEvaled, _)) = firstArgEvalResult else {
+    guard case .success(let firstArgEvaled) = firstArgEvalResult else {
       return firstArgEvalResult
     }
 
     let secondArgEvalResult = eval(secondArg, env)
-    guard case .success((let secondArgEvaled, _)) = secondArgEvalResult else {
+    guard case .success(let secondArgEvaled) = secondArgEvalResult else {
       return secondArgEvalResult
     }
 
-    return .success((.pair((firstArgEvaled, secondArgEvaled)), env))
+    return .success(.pair((firstArgEvaled, secondArgEvaled)))
   },
   "eval": Expr.fun { (exprs, env) in
     if exprs.count != 1 {
@@ -417,29 +409,29 @@ public let stdLib: Env = Env([
     }
 
     let res =
-      eval(head, env).flatMap { eval($0.0, env) }
-    return res
+      eval(head, env).flatMap { eval($0, env) }
 
+    return res
   },
   "def": Expr.fun(def),
   "print": Expr.fun { (exprs: [Expr], env: Env) in
     let exprsEvaled: [EvalResult] = exprs.map { expr in eval(expr, env) }
     return resultsArray(exprsEvaled).flatMap { exprs in
       let formatted = exprs.reduce("") { acc, curr in
-        switch curr.0 {
+        switch curr {
         case .string(let a):
           return "\(acc)\(a)"
         default:
-          return "\(acc)\(curr.0)"
+          return "\(acc)\(curr)"
         }
       }
       print(formatted)
-      return .success((Expr.null, env))
+      return .success(Expr.null)
     }
   },
   "list": Expr.fun { (exprs: [Expr], env: Env) in
-    let exprsEvaled = resultsArray(exprs.map { expr in eval(expr, env).map { $0.0 } })
-    return exprsEvaled.map { exprs in (exprsToPairs(exprs), env) }
+    let exprsEvaled = resultsArray(exprs.map { expr in eval(expr, env) })
+    return exprsEvaled.map { exprs in exprsToPairs(exprs) }
   },
   "quote": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .success((let head, let tail)) = unapply(exprs) else {
@@ -448,7 +440,7 @@ public let stdLib: Env = Env([
     if tail.count > 0 {
       return makeEvalError("quote takes 1 argument only.")
     }
-    return .success((head, env))
+    return .success(head)
   },
   "define": Expr.fun { (exprs, env) in
     guard case (.some(let definee), let body) = (exprs.first, exprs.dropFirst()),
@@ -469,12 +461,12 @@ public let stdLib: Env = Env([
     let fnName = allSymbols.first!
     let fnDef = defineFn(Array(allSymbols.dropFirst()), Array(body), env)
     guard case let .success(newFn) = fnDef else {
-      return fnDef.map({ ($0, env) })
+      return fnDef
     }
 
     env.myEnv.updateValue(newFn, forKey: fnName)
 
-    return Result.success((newFn, env))
+    return Result.success(newFn)
   },
   "fn": Expr.fun { (exprs: [Expr], env: Env) in
     guard case .success((let head, let body)) = unapply(exprs) else {
@@ -482,9 +474,8 @@ public let stdLib: Env = Env([
     }
     let symbols = getSymbolsFromListExpr(head)
     guard case .success(let symbols) = getSymbolsFromListExpr(head) else {
-      return symbols.map { _ in (.null, env) }
+      return symbols.map { _ in .null }
     }
-
-    return defineFn(symbols, body, env).map { ($0, env) }
+    return defineFn(symbols, body, env)
   },
 ])
