@@ -101,7 +101,7 @@ public struct SourceContext {
   func renderSourceContext()
     -> String?
   {
-    let lines = input.split(separator: "\n")
+    let lines = input.split(separator: "\n", omittingEmptySubsequences: false)
     let before = lines[safe: sourcePosition.line - 2].map { ("\($0)") }
     let context = lines[safe: sourcePosition.line - 1].map { ("\($0)") }
     let highlighted =
@@ -126,7 +126,9 @@ private func parseProgram(input: String) throws -> [Expr] {
     (semi
     *> StringParser.anyCharacter.manyTill(newline)).map { _ in " " }
 
-  let whitespace = StringParser.oneOf("  \n\r").map { _ in " " }
+  let whitespace = StringParser.sourcePosition.flatMap { _ in
+    StringParser.oneOf("  \n\r").map { _ in " " }
+  }
   let skip = (comment <|> whitespace).many
 
   let oparen = StringParser.character("(")
