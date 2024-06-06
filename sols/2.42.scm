@@ -36,12 +36,13 @@
 (assert (on-diagonal (list 4 3) (list 5 5)) false)
 (assert (on-diagonal (list 1 1) (list 5 5)) true)
 
-(define (safe? k positions)
-  (define newQueen (car positions))
+(define (safe? k all-positions)
+  (define newQueen (car all-positions))
+  (define positions (cdr all-positions))
   (define newQueenRow (car newQueen))
   (define newQueenCol (car (cdr newQueen)))
-  (define collisions
-    (filter
+  (not
+    (exists?
       (lambda (pos)
         (define posRow (car pos))
         (define posCol (car (cdr pos)))
@@ -49,11 +50,7 @@
           (= posCol newQueenCol)
           (= posRow newQueenRow)
           (on-diagonal pos newQueen)))
-      positions))
-  ; none of the same rows
-  ; none of the same columns
-  ; none in the diagonal
-  (= 1 (length collisions)))
+      positions)))
 
 (define
   (adjoin-position row col rest-of-queens)
