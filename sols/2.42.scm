@@ -32,6 +32,16 @@
 (assert (on-diagonal (list 1 1) (list 5 5)) true)
 
 (assert (or false false true) true)
+(define (exists? pred coll)
+  (define head (car coll))
+  (cond
+    (
+      ((null? head) false)
+      ((pred head) true)
+      (else (exists? pred (cdr coll))))))
+
+(assert (exists? (lambda (x) (= x 3)) (list 1 2 33)) false)
+(assert (exists? (lambda (x) (= x 3)) (list 1 2 3)) true)
 
 (define (safe? k positions)
   (define newQueen (car positions))
