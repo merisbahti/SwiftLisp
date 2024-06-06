@@ -87,7 +87,7 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
   }
   return unapply(exprs).flatMap { (head, tail) in
     switch head {
-    case Expr.variable(let variableName):
+    case Expr.variable(let variableName, _):
       return unapply(tail).flatMap { (head2, _) in
         .success((variableName, head2))
       }
@@ -294,7 +294,7 @@ public let stdLib: Env = Env([
     func extractBinding(_ bindingMaybe: Expr, _ env: Env) -> Result<(String, Expr), EvalError> {
       let err: Result<(String, Expr), EvalError> = makeEvalError(
         "Expected binding but found: \(bindingMaybe)")
-      guard case .pair((.variable(let variableName), .pair((let value, .null)))) = bindingMaybe
+      guard case .pair((.variable(let variableName, _), .pair((let value, .null)))) = bindingMaybe
       else {
         return err
       }
@@ -448,7 +448,7 @@ public let stdLib: Env = Env([
     else {
       return makeEvalError("define takes two args")
     }
-    if case (.variable(let symbol)) = definee {
+    if case (.variable(let symbol, _)) = definee {
       return def(exprs, env)
     }
     guard case .success(let allSymbols) = getSymbolsFromListExpr(definee), allSymbols.count > 0

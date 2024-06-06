@@ -7,10 +7,16 @@ import Testing
   arguments: [
     ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(SwiftLispLib.Expr.number(186))),
     ("(+ 1 2)", .success(Expr.number(3))),
-    ("(+ a 3)", makeEvalError("Variable not found: a")),
+    (
+      "(+ a 3)",
+      makeEvalError("Variable not found: a\nContext is:\n============\n(+ a 3)\n   ^\n============")
+    ),
     ("(+ 12 34 (+ 56 78 (+ 1 2)) (+ 1 2))", .success(SwiftLispLib.Expr.number(186))),
     ("(+ 1 2)", .success(Expr.number(3))),
-    ("(+ a 3)", makeEvalError("Variable not found: a")),
+    (
+      "(+ a 3)",
+      makeEvalError("Variable not found: a\nContext is:\n============\n(+ a 3)\n   ^\n============")
+    ),
     ("(- 3 5)", .success(Expr.number(-2))),
     ("(1 2 3)", makeEvalError("1 is not a function (in pair (1 2 3))")),
     ("(def a (+ 5 3)) (def b 5) (+ a b)", .success(Expr.number(13))),
@@ -458,7 +464,10 @@ import Testing
         (lower-fn (fn (x y)
                    (op 1))))
       (top-fn (fn (x) 1) 10)      
-      """, makeEvalError("Variable not found: something-else")
+      """,
+      makeEvalError(
+        "Variable not found: something-else\nContext is:\n============\n(define (lower-fn op) something-else)\n                      ^^^^^^^^^^^^^^\n(define (top-fn op something-else)\n============"
+      )
     ),
     (
       """

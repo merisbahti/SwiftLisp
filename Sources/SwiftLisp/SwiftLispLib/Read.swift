@@ -40,7 +40,7 @@ extension Expr: CustomStringConvertible {
       return str
     case .pair(let pair):
       return pairToString(pair)
-    case Expr.variable(let string):
+    case Expr.variable(let string, _):
       return string
     case Expr.fun(_):
       return "function"
@@ -75,14 +75,6 @@ func resultsArray<T, E>(_ xs: [Result<T, E>]) -> Result<[T], E> {
   }
 }
 
-private func numberOrVariable(val: String) -> Expr {
-  if let int = Float64(val) {
-    return .number(int)
-  } else {
-    return .variable(val)
-  }
-}
-
 func quoted(_ expr: Expr) -> Expr {
   return Expr.pair((Expr.variable("quote"), .pair((expr, .null))))
 }
@@ -94,7 +86,39 @@ func exprsToPairs(_ exprs: [Expr]) -> Expr {
   }
 }
 
-private func parseExpr() -> GenericParser<String, (), Expr> {
+extension Collection {
+  /// Returns the element at the specified index if it is within bounds, otherwise nil.
+  subscript(safe index: Index) -> Element? {
+    return indices.contains(index) ? self[index] : nil
+  }
+}
+
+public struct SourceContext {
+  let sourcePosition: SourcePosition
+  let input: String
+  let length: Int
+
+  func renderSourceContext()
+    -> String?
+  {
+    let lines = input.split(separator: "\n")
+    let before = lines[safe: sourcePosition.line - 2].map { ("\($0)") }
+    let context = lines[safe: sourcePosition.line - 1].map { ("\($0)") }
+    let highlighted =
+      (0...(sourcePosition.column - 2)).map { _ in " " }.joined(separator: "")
+      + ((0...length - 1).map { _ in "^" }).joined(separator: "")
+    let after = lines[safe: sourcePosition.line].map { String($0) }
+
+    if case .none = context {
+      return .none
+    }
+
+    return [before, context, .some(highlighted), after].compactMap { $0 }.joined(separator: "\n")
+  }
+
+}
+
+private func parseProgram(input: String) throws -> [Expr] {
   let newline =
     StringParser.character("\n")
   let semi = StringParser.character(";")
@@ -110,29 +134,46 @@ private func parseExpr() -> GenericParser<String, (), Expr> {
   let quote = StringParser.character("'")
 
   let atomChars = "abcdefghijklmnopqrstuvwxyzABCDEFHIJKLMNOPQRSTUVWXYZ+-/*?<>=0123456789.%"
-  let atom = numberOrVariable <^> StringParser.oneOf(atomChars).many1.stringValue
+  let atom = StringParser.sourcePosition.flatMap { sourcePos in
 
+    { stringOrNumber in
+      if let int = Float64(stringOrNumber) {
+        return Expr.number(int)
+      }
+      return Expr.variable(
+        stringOrNumber,
+        SourceContext(sourcePosition: sourcePos, input: input, length: stringOrNumber.count))
+
+    }
+      <^> StringParser.oneOf(atomChars).many1.stringValue
+
+  }
   let string =
-    Expr.string
-    <^> (StringParser.oneOf("\"").stringValue *> StringParser.noneOf("\"").many.stringValue
-      <* StringParser.oneOf("\"").stringValue)
+    StringParser.sourcePosition.flatMap { sourcePos in
+      { stringValue in
+        let expr = Expr.string(stringValue)
+        return expr
+      }
 
-  let parseExpr = GenericParser.recursive { (parseExpr: GenericParser<String, (), Expr>) in
+        <^> (StringParser.oneOf("\"").stringValue *> StringParser.noneOf("\"").many.stringValue
+          <* StringParser.oneOf("\"").stringValue)
+    }
+
+  let exprParser = GenericParser.recursive { (exprParser: GenericParser<String, (), Expr>) in
     let parseList: GenericParser<String, (), Expr>! =
-      (exprsToPairs <^> (oparen *> parseExpr.many <* cparen))
-    let parseQuoted: GenericParser<String, (), Expr>! = (quoted <^> (quote *> parseExpr))
+      (exprsToPairs <^> (oparen *> exprParser.many <* cparen))
+    let parseQuoted: GenericParser<String, (), Expr>! = (quoted <^> (quote *> exprParser))
     return skip *> (atom <|> parseList <|> string <|> parseQuoted) <* skip
   }
-  return parseExpr
+
+  let parsed = try exprParser.many1.run(sourceName: "", input: input)
+  return (parsed)
 }
 
-private let parseProgram = parseExpr().many1
-
 public func read(input: String) -> Result<[Expr], EvalError> {
-  let parser = parseProgram
   do {
-    let exprs = try parser.run(sourceName: "", input: input)
-    return .success(exprs)
+    let res = try parseProgram(input: input)
+    return .success(res)
   } catch let parseError as ParseError {
     return .failure(EvalError(message: "parse error at:" + String(describing: parseError)))
   } catch let error {

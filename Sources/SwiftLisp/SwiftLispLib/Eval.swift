@@ -1,3 +1,5 @@
+import SwiftParsec
+
 public struct EvalError: Error {
   let message: String
 }
@@ -12,7 +14,7 @@ public enum Expr {
   case number(Float64)
   case string(String)
   indirect case pair((Expr, Expr))
-  case variable(String)
+  case variable(String, SourceContext? = .none)
   case fun(([Expr], Env) -> EvalResult)
   case bool(Bool)
   case null
@@ -57,8 +59,8 @@ public func makeEvalError<A>(_ msg: String) -> Result<A, EvalError> {
 
 let getSymbolsFromListExpr: (Expr) -> Result<[String], EvalError> = { exprs in
   switch exprs {
-  case .pair((.variable(let a), .null)): return .success([a])
-  case .pair((.variable(let a), let expr)):
+  case .pair((.variable(let a, _), .null)): return .success([a])
+  case .pair((.variable(let a, _), let expr)):
     return getSymbolsFromListExpr(expr).map { $0.prepending(a) }
   case let other:
     return .failure(EvalError(message: "Expected list, got: \(other)"))
@@ -98,11 +100,15 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
       return pairs.map { _ in .null }
     }
     return carEvaled(args, env)
-  case .variable(let val):
+  case .variable(let val, let context):
     if let expr = env.get(key: val) {
       return .success(expr)
     } else {
-      return .failure(EvalError(message: "Variable not found: \(val)"))
+      let contextString =
+        context.flatMap {
+          $0.renderSourceContext().map { "\nContext is:\n============\n\($0)\n============" }
+        } ?? ""
+      return .failure(EvalError(message: "Variable not found: \(val)".appending(contextString)))
     }
   default:
     return .success(expr)
