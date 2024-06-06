@@ -23,25 +23,18 @@
         (list (- row currCol) (- col currCol))
         (list (+ row currCol) (- col currCol))))
     (enumerate-interval 0 col)))
+(define (exists? pred coll)
+  (cond
+    ((null? coll) false)
+    ((pred (car coll)) true)
+    (else (exists? pred (cdr coll)))))
 
 (define (on-diagonal pos new-queen)
-  (> (length (filter (lambda (diagonal-pos) (= diagonal-pos pos)) (get-diagonals-backwards new-queen))) 0))
+  (exists? (lambda (diagonal-pos) (= diagonal-pos pos)) (get-diagonals-backwards new-queen)))
 
 (assert (on-diagonal (list 4 4) (list 5 5)) true)
 (assert (on-diagonal (list 4 3) (list 5 5)) false)
 (assert (on-diagonal (list 1 1) (list 5 5)) true)
-
-(assert (or false false true) true)
-(define (exists? pred coll)
-  (define head (car coll))
-  (cond
-    (
-      ((null? head) false)
-      ((pred head) true)
-      (else (exists? pred (cdr coll))))))
-
-(assert (exists? (lambda (x) (= x 3)) (list 1 2 33)) false)
-(assert (exists? (lambda (x) (= x 3)) (list 1 2 3)) true)
 
 (define (safe? k positions)
   (define newQueen (car positions))
@@ -69,4 +62,7 @@
 (define empty-board '())
 
 (assert (length (queens 4)) 2)
+(assert (length (queens 5)) 10)
 (assert (length (queens 6)) 4)
+
+; (assert (length (queens 7)) 4)
