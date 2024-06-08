@@ -1,6 +1,6 @@
 import Foundation
 
-@testable import SwiftLispLib
+import SwiftLispLib
 
 let preludePath = "./prelude.scm"
 

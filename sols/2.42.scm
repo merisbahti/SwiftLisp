@@ -61,5 +61,6 @@
 (assert (length (queens 4)) 2)
 (assert (length (queens 5)) 10)
 (assert (length (queens 6)) 4)
+(assert (length (queens 7)) 40)
 
 ; (assert (length (queens 7)) 4)

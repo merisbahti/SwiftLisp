@@ -1,7 +1,7 @@
 import SwiftParsec
 
 public struct EvalError: Error {
-  let message: String
+  public let message: String
 }
 
 extension EvalError: Equatable {
@@ -43,7 +43,7 @@ public typealias EvalResult = Result<Expr, EvalError>
 public class Env {
   var baseEnv: Env?
   var myEnv: [String: Expr]
-  init(_ initialEnv: [String: Expr], baseEnv base: Env? = .none) {
+  public init(_ initialEnv: [String: Expr], baseEnv base: Env? = .none) {
     self.baseEnv = base
     self.myEnv = initialEnv
   }
