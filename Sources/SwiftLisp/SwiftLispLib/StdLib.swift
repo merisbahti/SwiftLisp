@@ -418,11 +418,8 @@ public let stdLib: Env = Env([
     return .success(.pair((firstArgEvaled, secondArgEvaled)))
   },
   "eval": Expr.fun { (exprs, env) in
-    if exprs.count != 1 {
-      return makeEvalError("Expr takes one arg, found: \(exprs)")
-    }
-    guard let head = exprs.first else {
-      return makeEvalError("Expr takes one arg, found: \(exprs)")
+    guard let head = exprs.first, exprs.count == 1 else {
+      return makeEvalError("eval takes one arg, found: \(exprs)")
     }
 
     let res =

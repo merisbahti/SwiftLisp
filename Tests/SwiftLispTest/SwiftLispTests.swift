@@ -492,6 +492,14 @@ import Testing
           Expr.number(6),
         ]))
     ),
+    (
+      """
+      (eval 1)
+      """,
+      .success(
+        .number(1)
+      )
+    ),
   ]
 )
 func someTest(_ tuple: (String, Result<SwiftLispLib.Expr, EvalError>)) {
