@@ -31,6 +31,8 @@ extension Expr: Equatable {
       return bool1 == bool2
     case (.string(let string1), .string(let string2)):
       return string1 == string2
+    case (.variable(let lhs, _), .variable(let rhs, _)):
+      return lhs == rhs
     case (.null, .null):
       return true
     default:
