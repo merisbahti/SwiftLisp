@@ -3,10 +3,10 @@
   (let (
         (firstLine (print "========="))
         (firstLine2
-          (map (lambda (x)
+          (map (lambda (ss)
                 (cond
-                  ((string? x) (print x))
-                  (else (print x ": " (eval x)))))
+                  ((string? ss) (print ss))
+                  (else (print ss ": " (eval ss)))))
             exprs)))
     (print "=========")))
 (def not
@@ -183,3 +183,4 @@
 (assert
   (memq 'apple '(x (apple sauce) y apple pear))
   '(apple pear))
+(define (cadr list) (car (cdr list)))

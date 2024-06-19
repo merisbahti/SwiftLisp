@@ -214,6 +214,13 @@ func unaryMatcherFun(_ name: String, _ fn: @escaping (_ expr: Expr) -> Bool) -> 
 }
 
 public let stdLib: Env = Env([
+  "symbol?":
+    unaryMatcherFun("symbol?") { x in
+      switch x {
+      case .variable(_, _): return true
+      default: return false
+      }
+    },
   "pair?":
     unaryMatcherFun("pair?") { x in
       switch x {
