@@ -42,7 +42,7 @@ extension Expr: CustomStringConvertible {
       return pairToString(pair)
     case Expr.variable(let string, _):
       return string
-    case Expr.fun(_):
+    case Expr.fun(_, _):
       return "function"
     case Expr.null:
       return "null"

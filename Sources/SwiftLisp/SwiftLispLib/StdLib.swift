@@ -120,15 +120,22 @@ func def(_ exprs: [Expr], _ env: Env) -> EvalResult {
   }
 }
 
-func defineFn(_ allSymbols: [String], _ body: [Expr], _ env: Env) -> Result<Expr, EvalError> {
+func defineFn(
+  _ allSymbols: [String], _ body: [Expr], _ env: Env, _ sourceContext: SourceContext? = .none
+) -> Result<Expr, EvalError> {
   let isVariadic = allSymbols.dropLast().last == "."
   let variadicSymbol: String? = isVariadic ? allSymbols.last : .none
   let symbols = isVariadic ? allSymbols.dropLast().dropLast() : allSymbols
 
   let newFn = Expr.fun({ (fnArgs, fnEnv) in
     if isVariadic ? fnArgs.count < symbols.count : fnArgs.count != symbols.count {
+      let extraSourceInfo =
+        sourceContext.flatMap { $0.renderSourceContext() }.map {
+          "\nFunction was defined here:\($0)"
+        } ?? ""
+
       return makeEvalError(
-        "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count)")
+        "Wrong nr of args to fn, got \(fnArgs.count) needed \(symbols.count) \(extraSourceInfo)")
     }
 
     let argsEvaledResult = resultsArray(fnArgs.map { arg in eval(arg, fnEnv) })
@@ -160,7 +167,9 @@ func defineMacro(_ exprs: [Expr], _ env: Env) -> Result<Expr, EvalError> {
   else {
     return makeEvalError("macros takes two args")
   }
-  guard case .success(let allSymbols) = getSymbolsFromListExpr(definee), allSymbols.count > 0 else {
+  guard case .success(let allSymbols) = getSymbolsFromListExpr(definee).map({ $0.map { $0.0 } }),
+    allSymbols.count > 0
+  else {
     return makeEvalError("Expected list symbols as first arg, but found: \(definee) ")
   }
 
@@ -292,7 +301,7 @@ public let stdLib: Env = Env([
       return false
     }
   },
-  "fail": Expr.fun { (exprs, env) in
+  "error": Expr.fun { (exprs, env) in
     let arg = exprs.first
 
     guard case .some(let arg) = exprs.first, exprs.count == 1 else {
@@ -480,12 +489,12 @@ public let stdLib: Env = Env([
     }
 
     let fnName = allSymbols.first!
-    let fnDef = defineFn(Array(allSymbols.dropFirst()), Array(body), env)
+    let fnDef = defineFn(Array(allSymbols.map { $0.0 }.dropFirst()), Array(body), env, fnName.1)
     guard case let .success(newFn) = fnDef else {
       return fnDef
     }
 
-    env.myEnv.updateValue(newFn, forKey: fnName)
+    env.myEnv.updateValue(newFn, forKey: fnName.0)
 
     return Result.success(newFn)
   },
@@ -497,6 +506,6 @@ public let stdLib: Env = Env([
     guard case .success(let symbols) = getSymbolsFromListExpr(head) else {
       return symbols.map { _ in .null }
     }
-    return defineFn(symbols, body, env)
+    return defineFn(symbols.map { $0.0 }, body, env, .none)
   },
 ])

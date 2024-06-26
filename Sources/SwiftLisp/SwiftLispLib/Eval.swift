@@ -15,7 +15,7 @@ public enum Expr {
   case string(String)
   indirect case pair((Expr, Expr))
   case variable(String, SourceContext? = .none)
-  case fun(([Expr], Env) -> EvalResult)
+  case fun(([Expr], Env) -> EvalResult, SourceContext? = .none)
   case bool(Bool)
   case null
 }
@@ -59,11 +59,11 @@ public func makeEvalError<A>(_ msg: String) -> Result<A, EvalError> {
   .failure(EvalError(message: msg))
 }
 
-let getSymbolsFromListExpr: (Expr) -> Result<[String], EvalError> = { exprs in
+let getSymbolsFromListExpr: (Expr) -> Result<[(String, SourceContext?)], EvalError> = { exprs in
   switch exprs {
-  case .pair((.variable(let a, _), .null)): return .success([a])
-  case .pair((.variable(let a, _), let expr)):
-    return getSymbolsFromListExpr(expr).map { $0.prepending(a) }
+  case .pair((.variable(let a, let sourcePos), .null)): return .success([(a, sourcePos)])
+  case .pair((.variable(let a, let sourcePos), let expr)):
+    return getSymbolsFromListExpr(expr).map { $0.prepending((a, sourcePos)) }
   case let other:
     return .failure(EvalError(message: "Expected list, got: \(other)"))
   }
@@ -91,7 +91,7 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
   switch expr {
   case .pair((let car, let cdr)):
     let headResult = eval(car, env)
-    guard case .success(.fun(let carEvaled)) = headResult else {
+    guard case .success(.fun(let carEvaled, _)) = headResult else {
       switch headResult {
       case .failure(let evalError): return .failure(evalError)
       default: return makeEvalError("\(car) is not a function (in pair \(expr))")
@@ -101,7 +101,9 @@ public func eval(_ expr: Expr, _ env: Env) -> EvalResult {
     guard case .success(let args) = pairs else {
       return pairs.map { _ in .null }
     }
-    return carEvaled(args, env)
+    return carEvaled(args, env).mapError { error in
+      return EvalError(message: "\(error.message)\n\tin call: \(expr)")
+    }
   case .variable(let val, let context):
     if let expr = env.get(key: val) {
       return .success(expr)

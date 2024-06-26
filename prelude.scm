@@ -79,8 +79,10 @@
 (define = eq)
 
 (defMacro (assert a b)
-  (let ((aEvaled (eval a))
+  (let (
+        (aEvaled (eval a))
         (bEvaled (eval b)))
+
     (cond
       ((= aEvaled bEvaled)
         null)
@@ -184,3 +186,4 @@
   (memq 'apple '(x (apple sauce) y apple pear))
   '(apple pear))
 (define (cadr list) (car (cdr list)))
+(define (caddr list) (car (cdr (cdr list))))
